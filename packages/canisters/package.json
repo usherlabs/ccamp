@@ -1,0 +1,23 @@
+{
+  "name": "canisters",
+  "version": "1.0.0",
+  "description": "The repo for the canisters required to facilitate the protocol",
+  "main": "",
+  "keywords": [
+		"blockchain",
+		"ethers",
+		"icp",
+		"internet computer",
+		"smart-contracts",
+		"rust",
+		"canisters",
+		"logstore"
+	],
+  "scripts": {
+    "setup": "sh -ci \"$(curl -fsSL https://internetcomputer.org/install.sh)\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "force-build": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline"
+  },
+  "author": "xand6r <shuaibualexander@gmail.com>",
+  "license": "ISC"
+}

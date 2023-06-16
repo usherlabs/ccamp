@@ -1,0 +1,22 @@
+{
+  "canisters": {
+    "remittance": {
+      "candid": "src/remittance/remittance.did",
+      "package": "remittance",
+      "type": "rust"
+    },
+    "data_collection": {
+      "candid": "src/data_collection/data_collection.did",
+      "package": "data_collection",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
