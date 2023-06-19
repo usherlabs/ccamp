@@ -3,18 +3,29 @@
   "version": "0.0.1",
   "description": "The Cross Chain Asset management protocol Solidity Contracts",
   "author": "Shuaibu Alexander <shuaibualexander@gmail.so>",
+  "scripts": {
+    "test": "hardhat test",
+    "deploy:hardhat": "hardhat run scripts/deploy.ts --network hardhat"
+  },
   "keywords": [
-		"blockchain",
-		"ethers",
-		"ethereum",
-		"hardhat",
-		"smart-contracts",
-		"solidity",
-		"logstore",
-		"typescript"
-	],
+    "blockchain",
+    "ethers",
+    "ethereum",
+    "hardhat",
+    "smart-contracts",
+    "solidity",
+    "logstore",
+    "typescript"
+  ],
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
-    "hardhat": "^2.15.0"
+    "@openzeppelin/contracts-upgradeable": "^4.9.2",
+    "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@types/chai": "^4.3.5",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.3.1",
+    "hardhat": "^2.15.0",
+    "solhint": "^3.4.1",
+    "solhint-plugin-prettier": "^0.0.5"
   }
 }

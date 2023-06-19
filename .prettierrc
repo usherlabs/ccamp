@@ -1,0 +1,36 @@
+{
+	"tabWidth": 2,
+	"useTabs": true,
+	"semi": true,
+	"singleQuote": true,
+	"overrides": [
+		{
+			"files": "*.yml",
+			"options": {
+				"useTabs": false
+			}
+		},
+		{
+			"files": "*.sol",
+			"options": {
+				"printWidth": 120,
+				"tabWidth": 4,
+				"useTabs": false,
+				"singleQuote": false,
+				"bracketSpacing": false
+			}
+		},
+		{
+			"files": ["*.ts"],
+			"options": {
+				"plugins": ["@trivago/prettier-plugin-sort-imports"],
+				"parser": "typescript",
+				"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
+				"importOrderParserPlugins": ["typescript", "decorators-legacy"],
+				"importOrderSeparation": true,
+				"importOrderSortSpecifiers": true,
+				"importOrderCaseInsensitive": true
+			}
+		}
+	]
+}

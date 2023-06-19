@@ -1,124 +1,162 @@
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import { expect } from "chai";
-import { ethers } from "hardhat";
+import assert from 'assert';
+import { expect } from 'chai';
+import { BigNumberish, Contract, ethers, Signer } from 'ethers';
+import { ethers as hEthers } from 'hardhat';
 
-describe("Lock", function () {
-  // We define a fixture to reuse the same setup in every test.
-  // We use loadFixture to run this setup once, snapshot that state,
-  // and reset Hardhat Network to that snapshot in every test.
-  async function deployOneYearLockFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
+import { ERROR_MESSAGES } from './utils/constants';
+import {
+	generateHashAndSignature,
+	loadLockerContract,
+} from './utils/functions';
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+describe('Locker', function () {
+	let lockerContract: Contract;
+	let allSigners: Signer[];
+	let adminSigner: Signer;
+	let canisterSigner: Signer;
 
-    // Contracts are deployed using the first signer/account by default
-    const [owner, otherAccount] = await ethers.getSigners();
+	beforeEach(async () => {
+		allSigners = await hEthers.getSigners();
+		adminSigner = allSigners[0];
+		canisterSigner = allSigners[5];
 
-    const Lock = await ethers.getContractFactory("Lock");
-    const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+		const canisterAddress = await canisterSigner.getAddress();
+		lockerContract = await loadLockerContract(canisterAddress, adminSigner);
+	});
 
-    return { lock, unlockTime, lockedAmount, owner, otherAccount };
-  }
+	async function sendEtherToLocker(amount: BigNumberish, signer: Signer) {
+		// deposit some funds into the contract
+		await signer.sendTransaction({
+			to: lockerContract.address,
+			value: amount,
+		});
+		// deposit some funds into the contract
+	}
 
-  describe("Deployment", function () {
-    it("Should set the right unlockTime", async function () {
-      const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
+	it('should deposit funds and emit event', async () => {
+		const depositedAmount = ethers.utils.parseEther('1.0');
+		await sendEtherToLocker(depositedAmount, adminSigner);
+		// filter for the last event sent from this contract
+		const eventFilter = lockerContract.filters.FundsDeposited();
+		const events = await lockerContract.queryFilter(eventFilter, -1);
+		const { sender, amount } = { ...events[events.length - 1].args } as {
+			sender: string;
+			amount: number;
+		};
+		// filter for the last event sent from this contract
 
-      expect(await lock.unlockTime()).to.equal(unlockTime);
-    });
+		// validate the parameters
+		const adminAddress = await adminSigner.getAddress();
+		expect(depositedAmount.toString()).to.equal(amount.toString());
+		expect(sender).to.equal(adminAddress);
+		// validate the parameters
+	});
 
-    it("Should set the right owner", async function () {
-      const { lock, owner } = await loadFixture(deployOneYearLockFixture);
+	it('should unlock funds with valid signature and emit event', async () => {
+		const amount = ethers.utils.parseEther('1.0');
+		const recipient = await adminSigner.getAddress();
+		const userPreBalance = await adminSigner.getBalance();
+		await sendEtherToLocker(amount, allSigners[11]);
 
-      expect(await lock.owner()).to.equal(owner.address);
-    });
+		// generate request and signature to unlock funds
+		const { signature } = await generateHashAndSignature(
+			0,
+			amount,
+			recipient,
+			canisterSigner
+		);
+		// make request
+		await lockerContract.unlockFunds(0, amount, signature);
+		// validate the balance of the contract is 0
+		const contractBalance = await lockerContract.getBalance();
+		assert.equal(+contractBalance, 0);
+		// validate the balance of the recipient is increased
+		const userPostBalance = await adminSigner.getBalance();
+		expect(userPostBalance).greaterThan(userPreBalance);
+	});
 
-    it("Should receive and store the funds to lock", async function () {
-      const { lock, lockedAmount } = await loadFixture(
-        deployOneYearLockFixture
-      );
+	it('should revert when unlocking funds with invalid signature from wrong amount', async () => {
+		const amount = ethers.utils.parseEther('1.0');
+		const recipient = await adminSigner.getAddress();
 
-      expect(await ethers.provider.getBalance(lock.address)).to.equal(
-        lockedAmount
-      );
-    });
+		await sendEtherToLocker(amount, allSigners[11]);
 
-    it("Should fail if the unlockTime is not in the future", async function () {
-      // We don't use the fixture here because we want a different deployment
-      const latestTime = await time.latest();
-      const Lock = await ethers.getContractFactory("Lock");
-      await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-        "Unlock time should be in the future"
-      );
-    });
-  });
+		const { signature } = await generateHashAndSignature(
+			0,
+			amount,
+			recipient,
+			canisterSigner
+		);
+		await expect(
+			lockerContract.unlockFunds(0, ethers.BigNumber.from(10), signature)
+		).to.revertedWith(ERROR_MESSAGES.INVALID_SIGNATURE);
 
-  describe("Withdrawals", function () {
-    describe("Validations", function () {
-      it("Should revert with the right error if called too soon", async function () {
-        const { lock } = await loadFixture(deployOneYearLockFixture);
+		// Check contract balance remains unchanged
+		const contractBalance = await lockerContract.getBalance();
+		assert.equal(contractBalance.toString(), amount.toString());
+	});
 
-        await expect(lock.withdraw()).to.be.revertedWith(
-          "You can't withdraw yet"
-        );
-      });
+	it('should revert when unlocking funds with invalid signature to wrong recipient', async () => {
+		const amount = ethers.utils.parseEther('1.0');
+		const recipient = await canisterSigner.getAddress();
 
-      it("Should revert with the right error if called from another account", async function () {
-        const { lock, unlockTime, otherAccount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+		await sendEtherToLocker(amount, allSigners[11]);
 
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(unlockTime);
+		const { signature } = await generateHashAndSignature(
+			0,
+			amount,
+			recipient,
+			canisterSigner
+		);
+		await expect(
+			lockerContract.unlockFunds(0, amount, signature)
+		).to.revertedWith(ERROR_MESSAGES.INVALID_SIGNATURE);
 
-        // We use lock.connect() to send a transaction from another account
-        await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-          "You aren't the owner"
-        );
-      });
+		// Check contract balance remains unchanged
+		const contractBalance = await lockerContract.getBalance();
+		assert.equal(contractBalance.toString(), amount.toString());
+	});
 
-      it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-        const { lock, unlockTime } = await loadFixture(
-          deployOneYearLockFixture
-        );
+	it('should revert when unlocking funds with amount greater than contract balance', async () => {
+		const amountToDeposit = ethers.utils.parseEther('1.0');
+		const amountToWithdraw = ethers.utils.parseEther('2.0');
+		const recipient = await adminSigner.getAddress();
 
-        // Transactions are sent using the first signer by default
-        await time.increaseTo(unlockTime);
+		await sendEtherToLocker(amountToDeposit, allSigners[11]);
 
-        await expect(lock.withdraw()).not.to.be.reverted;
-      });
-    });
+		const { signature } = await generateHashAndSignature(
+			0,
+			amountToWithdraw,
+			recipient,
+			canisterSigner
+		);
+		await expect(
+			lockerContract.unlockFunds(0, amountToWithdraw, signature)
+		).to.be.revertedWith(ERROR_MESSAGES.INVALID_AMOUNT);
 
-    describe("Events", function () {
-      it("Should emit an event on withdrawals", async function () {
-        const { lock, unlockTime, lockedAmount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+		// Check contract balance remains unchanged
+		const contractBalance = await lockerContract.getBalance();
+		assert.equal(contractBalance.toString(), amountToDeposit.toString());
+	});
 
-        await time.increaseTo(unlockTime);
+	it('should revert when a signature is used multiple times with same nonce', async () => {
+		const nonce = 0;
+		const amount = ethers.utils.parseEther('1.0');
+		const recipient = await adminSigner.getAddress();
+		const userPreBalance = await adminSigner.getBalance();
+		await sendEtherToLocker(amount, allSigners[11]);
 
-        await expect(lock.withdraw())
-          .to.emit(lock, "Withdrawal")
-          .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-      });
-    });
-
-    describe("Transfers", function () {
-      it("Should transfer the funds to the owner", async function () {
-        const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        await time.increaseTo(unlockTime);
-
-        await expect(lock.withdraw()).to.changeEtherBalances(
-          [owner, lock],
-          [lockedAmount, -lockedAmount]
-        );
-      });
-    });
-  });
+		// generate request and signature to unlock funds
+		const { signature } = await generateHashAndSignature(
+			0,
+			amount,
+			recipient,
+			canisterSigner
+		);
+		// make request
+		await lockerContract.unlockFunds(nonce, amount, signature);
+		await expect(
+			lockerContract.unlockFunds(nonce, amount, signature)
+		).to.revertedWith(ERROR_MESSAGES.USED_SIGNATURE);
+	});
 });
