@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"declarationMap": true,
+		"target": "ES2022",
+		"module": "ES2022",
+		"strict": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"outDir": "dist",
+		"baseUrl": ".",
+		"forceConsistentCasingInFileNames": true,
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"removeComments": true,
+		"skipLibCheck": true,
+        "moduleResolution": "Node",
+	},
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
+    },
+	"exclude": ["node_modules"],
+}

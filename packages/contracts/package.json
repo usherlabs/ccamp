@@ -5,6 +5,7 @@
   "author": "Shuaibu Alexander <shuaibualexander@gmail.so>",
   "scripts": {
     "test": "hardhat test",
+    "build": "hardhat compile",
     "deploy:hardhat": "hardhat run scripts/deploy.ts --network hardhat"
   },
   "keywords": [
