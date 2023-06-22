@@ -68,7 +68,7 @@ export async function writeJSONToFileOutside(
 	filename: string
 ) {
 	// Specify the absolute path of the directory outside the current directory where you want to write the file.
-	const targetDirectory = path.join(__dirname, '..');
+	const targetDirectory = path.join(__dirname, '../..');
 
 	// Combine the target directory and the filename to get the full file path.
 	const filePath = path.join(targetDirectory, filename);
