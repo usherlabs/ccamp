@@ -1,0 +1,35 @@
+{
+  "name": "@ccamp/lib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "del dist && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@ccamp/canisters": "workspace:^",
+    "@dfinity/agent": "^0.15.6",
+    "@dfinity/assets": "^0.15.6",
+    "@dfinity/candid": "^0.15.6",
+    "@dfinity/identity": "^0.15.6",
+    "@dfinity/identity-secp256k1": "^0.15.6",
+    "@dfinity/principal": "^0.15.6",
+    "image-thumbnail": "^1.0.15",
+    "isomorphic-fetch": "^3.0.0",
+    "mmmagic": "^0.5.3",
+    "prettier": "^2.8.8",
+    "sha256-file": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.36",
+    "@types/node": "^20.3.1",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.5.3",
+    "typescript": "^5.1.3"
+  }
+}

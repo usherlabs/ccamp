@@ -1,22 +1,22 @@
 {
-  "canisters": {
-    "remittance": {
-      "candid": "src/remittance/remittance.did",
-      "package": "remittance",
-      "type": "rust"
-    },
-    "data_collection": {
-      "candid": "src/data_collection/data_collection.did",
-      "package": "data_collection",
-      "type": "rust"
-    }
-  },
-  "defaults": {
-    "build": {
-      "args": "",
-      "packtool": ""
-    }
-  },
-  "output_env_file": ".env",
-  "version": 1
+	"canisters": {
+		"remittance": {
+			"candid": "src/remittance/remittance.did",
+			"package": "remittance",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
+		},
+		"data_collection": {
+			"candid": "src/data_collection/data_collection.did",
+			"package": "data_collection",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
+		}
+	},
+	"output_env_file": ".env",
+	"version": 1
 }

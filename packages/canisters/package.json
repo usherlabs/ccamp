@@ -1,9 +1,10 @@
 {
-  "name": "canisters",
-  "version": "1.0.0",
-  "description": "The repo for the canisters required to facilitate the protocol",
-  "main": "",
-  "keywords": [
+	"name": "@ccamp/canisters",
+	"version": "1.0.0",
+	"description": "The repo for the canisters required to facilitate the protocol",
+	"author": "xand6r <shuaibualexander@gmail.com>",
+	"license": "ISC",
+	"keywords": [
 		"blockchain",
 		"ethers",
 		"icp",
@@ -13,11 +14,30 @@
 		"canisters",
 		"logstore"
 	],
-  "scripts": {
-    "setup": "sh -ci \"$(curl -fsSL https://internetcomputer.org/install.sh)\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "force-build": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline"
-  },
-  "author": "xand6r <shuaibualexander@gmail.com>",
-  "license": "ISC"
+	"main": "",
+	"files": [
+		"./src/declarations",
+		"./.dfx"
+	],
+	"type": "module",
+	"scripts": {
+		"setup": "sh -ci \"$(curl -fsSL https://internetcomputer.org/install.sh)\"",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "dfx generate",
+		"deploy:local": "sh ./deploy.sh",
+		"compile:force": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline"
+	},
+	"dependencies": {
+		"@dfinity/agent": "^0.15.6",
+		"@dfinity/assets": "^0.15.6",
+		"@dfinity/candid": "^0.15.6",
+		"@dfinity/identity": "^0.15.6",
+		"@dfinity/identity-secp256k1": "^0.15.6",
+		"@dfinity/principal": "^0.15.6",
+		"image-thumbnail": "^1.0.15",
+		"isomorphic-fetch": "^3.0.0",
+		"mmmagic": "^0.5.3",
+		"prettier": "^2.8.8",
+		"sha256-file": "^1.0.0"
+	}
 }
