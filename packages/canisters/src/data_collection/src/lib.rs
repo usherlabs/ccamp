@@ -7,18 +7,30 @@ use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-type SubscriberStore = BTreeMap<Principal, Subscriber>;
-thread_local! {
-    static SUBSCRIBERS: RefCell<SubscriberStore> = RefCell::default();
+const REMITTANCE_EVENT: &str = "REMITTANCE";
+// define the structure of the remittance data model
+#[derive(Clone, Debug, CandidType, Deserialize)]
+struct DataModel<'a> {
+    ticker: &'a str,
+    chain_id: u64,
+    recipient_address: &'a str,
+    amount: u64
 }
+// define the structure of the remittance data model
 #[derive(Clone, Debug, CandidType, Deserialize)]
 struct Counter {
-    topic: String,
     value: u64,
 }
+
 #[derive(Clone, Debug, CandidType, Deserialize)]
 struct Subscriber {
     topic: String,
+}
+
+type SubscriberStore = BTreeMap<Principal, Subscriber>;
+
+thread_local! {
+    static SUBSCRIBERS: RefCell<SubscriberStore> = RefCell::default();
 }
 
 #[query]
@@ -37,11 +49,19 @@ fn subscribe(subscriber: Subscriber) {
 }
 
 #[update]
-async fn publish(counter: Counter) {
+async fn publish() {
+    // create a dummy remittance object we can publish until we implement data collection
+    // which would then generate daa
+    let data_model = DataModel {
+        ticker: "USDC",
+        chain_id: 1,
+        recipient_address: "0x1234567890123456789012345678901234567891",
+        amount: 1000000
+    };
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
-            if v.topic == counter.topic {
-                let _call_result: Result<(), _> = ic_cdk::notify(*k, "update_count", (&counter,));
+            if v.topic == REMITTANCE_EVENT {
+                let _call_result: Result<(), _> = ic_cdk::notify(*k, "update_remittance", (&data_model,));
             }
         }
     });
