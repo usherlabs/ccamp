@@ -1,3 +1,13 @@
+type Counter = record {
+	topic : text;
+	value : nat64;
+};
+type Subscriber = record {
+	topic : text;
+};
+
 service : {
-    "greet": (text) -> (text) query;
-}
+	"greet" : (text) -> (text) query;
+	"subscribe" : (subscriber : Subscriber) -> ();
+	"publish" : (counter : Counter) -> ();
+};
