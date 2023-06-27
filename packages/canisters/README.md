@@ -65,4 +65,4 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 subscribe remittance canister to data collection pubsub -> dfx canister call remittance setup_subscribe '(principal "c2lt4-zmaaa-aaaaa-qaaiq-cai")'
 publish new data from data canister to remittance canister -> dfx canister call data_collection publish
-query remittance canister to make sure it gets the data -> dfx canister call remittance get_remittance '("USDC",1,"0x1234567890123456789012345678901234567891")'
+query remittance canister to make sure it gets the data -> dfx canister call remittance get_remittance '("USDC","ethereum","1","0x1234567890123456789012345678901234567892")'

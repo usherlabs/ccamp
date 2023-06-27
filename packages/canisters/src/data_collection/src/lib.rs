@@ -1,67 +1,52 @@
-// this canister is responsible for collecting data
-// and then publishing it to all the remittance canisters subscribed to it
-// it essentially Loads -> transforms -> Publishes data
-use candid::{CandidType, Principal};
 use ic_cdk_macros::*;
-use serde::Deserialize;
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+
+pub mod data_collection;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
-// define the structure of the remittance data model
-#[derive(Clone, Debug, CandidType, Deserialize)]
-struct DataModel<'a> {
-    ticker: &'a str,
-    chain_id: u64,
-    recipient_address: &'a str,
-    amount: u64
-}
-// define the structure of the remittance data model
-#[derive(Clone, Debug, CandidType, Deserialize)]
-struct Counter {
-    value: u64,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-struct Subscriber {
-    topic: String,
-}
-
-type SubscriberStore = BTreeMap<Principal, Subscriber>;
-
 thread_local! {
-    static SUBSCRIBERS: RefCell<SubscriberStore> = RefCell::default();
+    static SUBSCRIBERS: RefCell<data_collection::SubscriberStore> = RefCell::default();
 }
 
+// @dev testing command
 #[query]
 fn greet(name: String) -> String {
     format!("Hello data_collection canister, {}!", name)
 }
 
+// this function is going to be called by the remittance canister
+// so it can recieve "publish" events from this canister
 #[update]
-fn subscribe(subscriber: Subscriber) {
+fn subscribe(subscriber: data_collection::Subscriber) {
     let subscriber_principal_id = ic_cdk::caller();
     SUBSCRIBERS.with(|subscribers| {
         subscribers
             .borrow_mut()
-            .insert(subscriber_principal_id, subscriber)
+            .insert(subscriber_principal_id, subscriber);
     });
 }
 
+// we would use this method to publish data to the subscriber
+// which would be the remittance model
+// so when we have some new data, we would publish it to the remittance model
 #[update]
 async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
-    // which would then generate daa
-    let data_model = DataModel {
-        ticker: "USDC",
-        chain_id: 1,
-        recipient_address: "0x1234567890123456789012345678901234567891",
-        amount: 1000000
+    // which would then generate the data instead of hardcoding it
+    let data_model = data_collection::DataModel {
+        ticker: "USDC".to_string(),
+        chain_id: "1".to_string(),
+        chain_name: "ETHEREUM".to_string(),
+        recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
+        chain: data_collection::Chain::Ethereum1,
+        amount: 1000000,
     };
+
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
             if v.topic == REMITTANCE_EVENT {
-                let _call_result: Result<(), _> = ic_cdk::notify(*k, "update_remittance", (&data_model,));
+                let _call_result: Result<(), _> =
+                    ic_cdk::notify(*k, "update_remittance", (&data_model,));
             }
         }
     });

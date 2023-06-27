@@ -8,13 +8,14 @@ type Subscriber = variant {
 
 type DataModel = record {
 	ticker : text;
-	chain_id : nat64;
+	chain_id : text;
+	chain_name : text;
 	recipient_address : text;
 	amount : nat64;
 };
 
 service : {
 	"setup_subscribe" : (publisher_id : principal) -> ();
-	"get_remittance": (text, nat64, text) -> (DataModel) query;
+	"get_remittance": (text, text,text, text) -> (DataModel) query;
 	"request" : () -> (text) query;
 };
