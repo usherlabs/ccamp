@@ -12,8 +12,23 @@ thread_local! {
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
 
+fn only_publisher() {
+    let caller_principal_id = caller();
+    if !PUBLISHERS.with(|publisher| publisher.borrow().contains(&caller_principal_id)) {
+        panic!("NOT_ALLOWED");
+    }
+}
+
+fn only_owner() {
+    let caller_principal_id = caller();
+    if !OWNER.with(|owner| owner.borrow().expect("NO_OWNER") == caller_principal_id) {
+        panic!("NOT_ALLOWED");
+    }
+}
+
 #[init]
 fn init() {
+    // TODO: upon upgrade of canister, sometimes initialzed variables are lost, reinitialise on upgrade or find way to preserve state
     let caller_principal_id = caller();
     OWNER.with(|token| {
         token.replace(Some(caller_principal_id));
@@ -23,7 +38,7 @@ fn init() {
 // get deployer of contract
 #[query]
 fn owner() -> String {
-    OWNER.with(|token| token.borrow().clone().expect("NO_OWNER").to_string())
+    OWNER.with(|owner| owner.borrow().clone().expect("NO_OWNER").to_string())
 }
 
 // @dev test function
@@ -35,6 +50,7 @@ fn greet(name: String) -> String {
 // W.I.P this would be called to fe
 #[query]
 fn request() -> String {
+    // make sure this function can only be called by a registered user
     format!("Signature_response")
 }
 
@@ -42,6 +58,7 @@ fn request() -> String {
 // this then subscribes the remittance canister to "REMITTANCE" events from the data cannister
 #[update]
 async fn setup_subscribe(publisher_id: Principal) {
+    only_owner();
     let subscriber = lib::Subscriber {
         topic: REMITTANCE_EVENT.to_string(),
     };
@@ -70,7 +87,7 @@ async fn setup_subscribe(publisher_id: Principal) {
 // then the price is updated, otherwise the entry is created
 #[update]
 fn update_remittance(new_remittance: lib::DataModel) {
-    // TODO implement access control so only publishers can call this method
+    only_publisher();
     REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
 
