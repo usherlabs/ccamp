@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "src/remittance",
-    "src/data_collection"
+    "src/data_collection",
+    "src/lib"
 ]

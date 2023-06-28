@@ -1,13 +1,29 @@
-use ic_cdk_macros::*;
 use candid::Principal;
-use std::cell::{Cell, RefCell};
-
+use ic_cdk::caller;
+use ic_cdk_macros::*;
+use std::cell::RefCell;
 mod remittance;
+use lib;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static REMITTANCE: RefCell<remittance::Store> = RefCell::default();
-    static COUNTER: Cell<u64> = Cell::new(0);
+    static OWNER: RefCell<Option<Principal>> = RefCell::default();
+    static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
+}
+
+#[init]
+fn init() {
+    let caller_principal_id = caller();
+    OWNER.with(|token| {
+        token.replace(Some(caller_principal_id));
+    })
+}
+
+// get deployer of contract
+#[query]
+fn owner() -> String {
+    OWNER.with(|token| token.borrow().clone().expect("NO_OWNER").to_string())
 }
 
 // @dev test function
@@ -26,11 +42,26 @@ fn request() -> String {
 // this then subscribes the remittance canister to "REMITTANCE" events from the data cannister
 #[update]
 async fn setup_subscribe(publisher_id: Principal) {
-    let subscriber = remittance::Subscriber {
+    let subscriber = lib::Subscriber {
         topic: REMITTANCE_EVENT.to_string(),
     };
     let _call_result: Result<(), _> = ic_cdk::call(publisher_id, "subscribe", (subscriber,)).await;
+    // update the list of all the publishers subscribed to while avoiding duplicates
+    PUBLISHERS.with(|publisher| {
+        let mut borrowed_publisher = publisher.borrow_mut();
+        if !borrowed_publisher.contains(&publisher_id) {
+            borrowed_publisher.push(publisher_id)
+        }
+    });
 }
+
+// test to get the last publisher
+// test to get the number of publishers
+// test to check if the passed in principal is present in the vector
+// #[query]
+// fn includes_publisher(publisher_id: Principal) -> bool {
+//     PUBLISHERS.with(|publisher| publisher.borrow().contains(&publisher_id))
+// }
 
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
@@ -38,7 +69,8 @@ async fn setup_subscribe(publisher_id: Principal) {
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
 #[update]
-fn update_remittance(new_remittance: remittance::DataModel) {
+fn update_remittance(new_remittance: lib::DataModel) {
+    // TODO implement access control so only publishers can call this method
     REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
 
@@ -53,10 +85,8 @@ fn update_remittance(new_remittance: remittance::DataModel) {
         } else {
             remittance_store.insert(
                 hash_key,
-                remittance::DataModel {
+                lib::DataModel {
                     ticker: new_remittance.ticker.clone(),
-                    chain_id: new_remittance.chain_id.clone(),
-                    chain_name: new_remittance.chain_name.clone(),
                     recipient_address: new_remittance.recipient_address.clone(),
                     amount: new_remittance.amount,
                     chain: new_remittance.chain,
@@ -74,15 +104,15 @@ fn get_remittance(
     chain_name: String,
     chain_id: String,
     recipient_address: String,
-) -> remittance::DataModel {
-    let chain = remittance::Chain::from_chain_details(&chain_name, &chain_id).expect("Invalid chain");
+) -> lib::DataModel {
+    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
 
     REMITTANCE.with(|remittance| {
         let existing_key = (ticker, chain, recipient_address);
         remittance
             .borrow()
             .get(&existing_key)
-            .expect("Remittance not found ")
+            .expect("REMITTANCE_NOT_FOUND ")
             .clone()
     })
 }

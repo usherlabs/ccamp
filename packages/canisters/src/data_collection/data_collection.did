@@ -6,6 +6,7 @@ type Subscriber = record {
 };
 
 service : {
+	"owner": () -> (text) query;
 	"greet" : (text) -> (text) query;
 	"subscribe" : (subscriber : Subscriber) -> ();
 	"publish" : () -> ();

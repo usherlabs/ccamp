@@ -17,7 +17,7 @@ fn greet(name: String) -> String {
 // this function is going to be called by the remittance canister
 // so it can recieve "publish" events from this canister
 #[update]
-fn subscribe(subscriber: data_collection::Subscriber) {
+fn subscribe(subscriber: lib::Subscriber) {
     let subscriber_principal_id = ic_cdk::caller();
     SUBSCRIBERS.with(|subscribers| {
         subscribers
@@ -33,12 +33,10 @@ fn subscribe(subscriber: data_collection::Subscriber) {
 async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
-    let data_model = data_collection::DataModel {
+    let data_model = lib::DataModel {
         ticker: "USDC".to_string(),
-        chain_id: "1".to_string(),
-        chain_name: "ETHEREUM".to_string(),
         recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
-        chain: data_collection::Chain::Ethereum1,
+        chain: lib::Chain::Ethereum1,
         amount: 1000000,
     };
 
