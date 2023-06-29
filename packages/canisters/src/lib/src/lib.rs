@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 pub struct DataModel {
     pub ticker: String,
     pub recipient_address: String,
-    pub amount: u64,
+    pub amount: i64,
     pub chain: Chain,
 }
 
