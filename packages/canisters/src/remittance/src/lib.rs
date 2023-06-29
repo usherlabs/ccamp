@@ -12,6 +12,7 @@ thread_local! {
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
 
+// ------- Access control
 fn only_publisher() {
     let caller_principal_id = caller();
     if !PUBLISHERS.with(|publisher| publisher.borrow().contains(&caller_principal_id)) {
@@ -28,12 +29,19 @@ fn only_owner() {
 
 #[init]
 fn init() {
-    // TODO: upon upgrade of canister, sometimes initialzed variables are lost, reinitialise on upgrade or find way to preserve state
     let caller_principal_id = caller();
     OWNER.with(|token| {
         token.replace(Some(caller_principal_id));
     })
 }
+
+// upon upgrade of contracts, state is  lost
+// so we need to reinitialize important variables here
+#[post_upgrade]
+fn upgrade(){
+    init();
+}
+
 
 // get deployer of contract
 #[query]
