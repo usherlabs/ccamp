@@ -6,16 +6,14 @@ type Subscriber = variant {
 	topic : text;
 };
 
-type DataModel = record {
-	ticker : text;
-	recipient_address : text;
-	amount : nat64;
+type Account = record {
+	balance : nat64;
 };
 
 service : {
 	"includes_publisher" : (publisher_id : principal) -> (bool) query;
 	"setup_subscribe" : (publisher_id : principal) -> ();
-	"get_remittance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (DataModel) query;
+	"get_remittance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
 	"request" : () -> (text) query;
 	"owner" : () -> (text) query;
 };

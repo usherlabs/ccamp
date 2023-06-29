@@ -98,15 +98,13 @@ fn update_remittance(new_remittance: lib::DataModel) {
         );
 
         if let Some(existing_data) = remittance_store.get_mut(&hash_key) {
-            existing_data.amount += new_remittance.amount;
+            existing_data.balance =
+                (existing_data.balance as i64 + new_remittance.amount as i64) as u64;
         } else {
             remittance_store.insert(
                 hash_key,
-                lib::DataModel {
-                    ticker: new_remittance.ticker.clone(),
-                    recipient_address: new_remittance.recipient_address.clone(),
-                    amount: new_remittance.amount,
-                    chain: new_remittance.chain,
+                remittance::Account {
+                    balance: new_remittance.amount as u64,
                 },
             );
         }
@@ -121,7 +119,7 @@ fn get_remittance(
     chain_name: String,
     chain_id: String,
     recipient_address: String,
-) -> lib::DataModel {
+) -> remittance::Account {
     let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
 
     REMITTANCE.with(|remittance| {
