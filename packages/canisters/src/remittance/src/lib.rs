@@ -38,10 +38,9 @@ fn init() {
 // upon upgrade of contracts, state is  lost
 // so we need to reinitialize important variables here
 #[post_upgrade]
-fn upgrade(){
+fn upgrade() {
     init();
 }
-
 
 // get deployer of contract
 #[query]
@@ -90,11 +89,18 @@ async fn setup_subscribe(publisher_id: Principal) {
 
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
+#[update]
+fn update_remittance(new_remittances: Vec<lib::DataModel>) {
+    only_publisher();
+    for new_remittance in new_remittances{
+        update_balance(new_remittance);
+    }
+}
+
 // it essentially uses the mapping (ticker, chain, recipientaddress) => {DataModel}
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
-#[update]
-fn update_remittance(new_remittance: lib::DataModel) {
+fn update_balance(new_remittance: lib::DataModel) {
     only_publisher();
     REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();

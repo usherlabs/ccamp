@@ -33,18 +33,27 @@ fn subscribe(subscriber: lib::Subscriber) {
 async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
-    let data_model = lib::DataModel {
+    let sample_increase = lib::DataModel {
         ticker: "USDC".to_string(),
         recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
         chain: lib::Chain::Ethereum1,
         amount: 1000000,
     };
 
+    let sample_decrease = lib::DataModel {
+        ticker: "USDC".to_string(),
+        recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
+        chain: lib::Chain::Ethereum1,
+        amount: -500000,
+    };
+
+    let bulk_update = vec![sample_increase, sample_decrease];
+
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
             if v.topic == REMITTANCE_EVENT {
                 let _call_result: Result<(), _> =
-                    ic_cdk::notify(*k, "update_remittance", (&data_model,));
+                    ic_cdk::notify(*k, "update_remittance", (&bulk_update,));
             }
         }
     });
