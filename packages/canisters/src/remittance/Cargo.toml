@@ -9,7 +9,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-rand = "0.8"
 candid = "0.7.4"
 ic-cdk = "0.5.1"
 ic-cdk-macros = "0.5.1"
@@ -25,3 +24,5 @@ ethereum-rlp = "0.2.3"
 easy-hasher = "2.2.1"
 libsecp256k1 = { version = "0.6.0", default-features = false, features = ["lazy-static-context"] }
 futures = "0.3.25"
+eth-encode-packed = "0.1.0"
+rand = "0.8.5"

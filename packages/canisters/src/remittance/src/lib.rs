@@ -1,14 +1,14 @@
 use candid::Principal;
-use easy_hasher::easy_hasher;
-use ecdsa::vec_u8_to_string;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
-use k256::pkcs8::der::Encode;
 use lib;
+use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 
 mod ecdsa;
+mod ethereum;
 mod remittance;
+mod utils;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
@@ -132,17 +132,22 @@ fn update_balance(new_remittance: lib::DataModel) {
 
 // this function is just used to test and confirm if the data is actually included in the hashmap(object/dictionary)
 // and if it can be queried, it would eventually be taken out when we get to testing
-#[query]
-fn get_remittance(
+#[update]
+async fn get_remittance(
     ticker: String,
     chain_name: String,
     chain_id: String,
     recipient_address: String,
-) -> remittance::Account {
+) -> String {
+    // validate the address and the chain
+    if recipient_address.len() != 42 {
+        panic!("INVALID_ADDRESS")
+    };
     let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    // validate the address and the chain
 
     let account = REMITTANCE.with(|remittance| {
-        let existing_key = (ticker, chain, recipient_address);
+        let existing_key = (ticker, chain, recipient_address.clone());
         remittance
             .borrow()
             .get(&existing_key)
@@ -150,13 +155,45 @@ fn get_remittance(
             .clone()
     });
 
-    // generate a random digit to use as nonce
-    // let nonce = remittance::generate_nonce();
-    // let amount = account.balance;
-    // return a {signature, nonce, amount}
-    // bytes32 dataHash = keccak256(abi.encodePacked(nonce, amount, msg.sender));
+    // TODO use a random number generator to fetch the nonce
+    let nonce = 10;
+    let amount = account.balance;
 
-    return account;
+    let (bytes_hash, _) =
+        remittance::produce_remittance_hash(nonce, amount, &recipient_address[..]);
+
+    let message = ethereum::sign_message(bytes_hash)
+        .await
+        .expect("ERROR_SIGNING_MESSAGE");
+
+    // TODO return not only string but also information about the nonce and amount
+    message.signature_hex
+}
+
+#[query]
+fn get_balance(
+    ticker: String,
+    chain_name: String,
+    chain_id: String,
+    recipient_address: String,
+) -> remittance::Account {
+    // validate the address and the chain
+    if recipient_address.len() != 42 {
+        panic!("INVALID_ADDRESS")
+    };
+    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    // validate the address and the chain
+
+    let amount = REMITTANCE.with(|remittance| {
+        let existing_key = (ticker, chain, recipient_address.clone());
+        remittance
+            .borrow()
+            .get(&existing_key)
+            .expect("REMITTANCE_NOT_FOUND ")
+            .clone()
+    });
+
+    amount
 }
 
 async fn derive_pk() -> Vec<u8> {
@@ -197,7 +234,7 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
     .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))?;
 
     let address =
-        ecdsa::get_address_from_public_key(res.public_key.clone()).expect("INVALID_PUBLIC_KEY");
+        ethereum::get_address_from_public_key(res.public_key.clone()).expect("INVALID_PUBLIC_KEY");
 
     Ok(ecdsa::PublicKeyReply {
         public_key_hex: hex::encode(res.public_key),
@@ -208,7 +245,7 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
 #[update]
 async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
-    let message_hash = ecdsa::hash_eth_message(message.into_bytes());
+    let message_hash = ethereum::hash_eth_message(message.into_bytes());
 
     // sign the message
     let public_key = derive_pk().await;
@@ -225,15 +262,11 @@ async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
         25_000_000_000,
     )
     .await
-    .map_err(|e| format!("sign_with_ecdsa failed {}", e.1))?;
+    .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
 
-    let full_signature = ecdsa::get_signature(
-        &response.signature,
-        &message_hash,
-        &public_key,
-    );
+    let full_signature = ethereum::get_signature(&response.signature, &message_hash, &public_key);
     Ok(ecdsa::SignatureReply {
-        signature_hex: vec_u8_to_string(&full_signature),
+        signature_hex: utils::vec_u8_to_string(&full_signature),
     })
 }
 
@@ -243,15 +276,15 @@ async fn verify(
     message: String,
     public_key_hex: String,
 ) -> Result<ecdsa::SignatureVerificationReply, String> {
-    let signature_bytes = hex::decode(&signature_hex).expect("failed to hex-decode signature");
-    let pubkey_bytes = hex::decode(&public_key_hex).expect("failed to hex-decode public key");
-    let message_bytes = ecdsa::hash_eth_message(message.into_bytes());
+    let signature_bytes = hex::decode(&signature_hex).expect("FAILED_TO_HEXDECODE_SIGNATURE");
+    let pubkey_bytes = hex::decode(&public_key_hex).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
+    let message_bytes = ethereum::hash_eth_message(message.into_bytes());
 
     use k256::ecdsa::signature::Verifier;
     let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
-        .expect("failed to deserialize signature");
+        .expect("DESERIALIZE_SIGNATURE_FAILED");
     let is_signature_valid = k256::ecdsa::VerifyingKey::from_sec1_bytes(&pubkey_bytes)
-        .expect("failed to deserialize sec1 encoding into public key")
+        .expect("DESERIALIZE_SEC1_ENCODING_FAILED")
         .verify(&message_bytes, &signature)
         .is_ok();
 

@@ -18,6 +18,7 @@ export async function generateHashAndSignature(
 	// sign the hash recieved
 	const signature = await signer.signMessage(hEthers.utils.arrayify(dataHash));
 	// retuen both the signature and amount
+	console.log({signature, dataHash, addr: await signer.getAddress()});;
 	return { hash: dataHash, signature };
 }
 
