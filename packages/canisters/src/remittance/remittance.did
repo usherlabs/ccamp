@@ -16,4 +16,7 @@ service : {
 	"get_remittance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
 	"request" : () -> (text) query;
 	"owner" : () -> (text) query;
+	public_key : () -> (variant { Ok : record { public_key_hex : text; etherum_pk: text }; Err : text });
+	sign : (text) -> (variant { Ok : record { signature_hex : text }; Err : text });
+	verify : (text, text, text) -> (variant { Ok : record { is_signature_valid : bool }; Err : text });
 };
