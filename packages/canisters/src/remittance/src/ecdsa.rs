@@ -1,4 +1,3 @@
-use easy_hasher::easy_hasher;
 use ic_cdk::export::{
     candid::CandidType,
     serde::{Deserialize, Serialize},

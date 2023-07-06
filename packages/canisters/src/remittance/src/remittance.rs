@@ -7,10 +7,11 @@ use eth_encode_packed::{
     SolidityDataType,
 };
 use lib;
-use rand::{Rng, rngs::StdRng};
+use rand::rngs::StdRng;
 use serde_derive::Deserialize;
-use std::{collections::HashMap, cell::RefCell};
+use std::{cell::RefCell, collections::HashMap};
 
+pub const MAX_CYCLE: u64 = 25_000_000_000;
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct Account {
     pub balance: u64,
@@ -19,15 +20,14 @@ pub struct Account {
 thread_local! {
     static RNG: RefCell<Option<StdRng>> = RefCell::new(None);
 }
-
 pub type Store = HashMap<(String, lib::Chain, String), Account>;
 
-// generate a nonce which ranges between 0 and 2^(64 - 1)
-pub fn generate_nonce() -> u64 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(0..=u64::MAX)
+#[derive(CandidType, Deserialize, Debug)]
+pub struct RemittanceReply {
+    pub signature: String,
+    pub nonce: u64,
+    pub amount: u64,
 }
-
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn produce_remittance_hash(nonce: u64, amount: u64, address: &str) -> (Vec<u8>, String) {

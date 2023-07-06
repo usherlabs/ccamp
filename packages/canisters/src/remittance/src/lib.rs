@@ -1,5 +1,4 @@
 use candid::Principal;
-use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
 use std::cell::RefCell;
@@ -9,35 +8,21 @@ mod ethereum;
 mod random;
 mod remittance;
 mod utils;
+mod owner;
+
+// TODO research on preserving state of dc and r canisters when upgrade happens
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static REMITTANCE: RefCell<remittance::Store> = RefCell::default();
-    static OWNER: RefCell<Option<Principal>> = RefCell::default();
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
 
-// ------- Access control
-fn only_publisher() {
-    let caller_principal_id = caller();
-    if !PUBLISHERS.with(|publisher| publisher.borrow().contains(&caller_principal_id)) {
-        panic!("NOT_ALLOWED");
-    }
-}
 
-fn only_owner() {
-    let caller_principal_id = caller();
-    if !OWNER.with(|owner| owner.borrow().expect("NO_OWNER") == caller_principal_id) {
-        panic!("NOT_ALLOWED");
-    }
-}
-
+// ----------------------------------- init and upgrade hooks
 #[init]
 fn init() {
-    let caller_principal_id = caller();
-    OWNER.with(|token| {
-        token.replace(Some(caller_principal_id));
-    });
+    owner::init_owner();
     random::init_ic_rand();
 }
 
@@ -47,11 +32,13 @@ fn init() {
 fn upgrade() {
     init();
 }
+// ----------------------------------- init and upgrade hooks
+
 
 // get deployer of contract
 #[query]
 fn owner() -> String {
-    OWNER.with(|owner| owner.borrow().clone().expect("NO_OWNER").to_string())
+    owner::get_owner()
 }
 
 // @dev test function
@@ -60,18 +47,11 @@ fn greet(name: String) -> String {
     format!("Hello data_collection canister, {}!", name)
 }
 
-// W.I.P this would be called to fe
-#[query]
-fn request() -> String {
-    // make sure this function can only be called by a registered user
-    format!("Signature_response")
-}
-
 // we call this method, with the id of the data_collection canister
 // this then subscribes the remittance canister to "REMITTANCE" events from the data cannister
 #[update]
 async fn setup_subscribe(publisher_id: Principal) {
-    only_owner();
+    owner::only_owner();
     let subscriber = lib::Subscriber {
         topic: REMITTANCE_EVENT.to_string(),
     };
@@ -85,19 +65,12 @@ async fn setup_subscribe(publisher_id: Principal) {
     });
 }
 
-// test to get the last publisher
-// test to get the number of publishers
-// test to check if the passed in principal is present in the vector
-// #[query]
-// fn includes_publisher(publisher_id: Principal) -> bool {
-//     PUBLISHERS.with(|publisher| publisher.borrow().contains(&publisher_id))
-// }
 
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
 #[update]
 fn update_remittance(new_remittances: Vec<lib::DataModel>) {
-    only_publisher();
+    owner::only_publisher();
     for new_remittance in new_remittances {
         update_balance(new_remittance);
     }
@@ -107,7 +80,7 @@ fn update_remittance(new_remittances: Vec<lib::DataModel>) {
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
 fn update_balance(new_remittance: lib::DataModel) {
-    only_publisher();
+    owner::only_publisher();
     REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
 
@@ -131,15 +104,14 @@ fn update_balance(new_remittance: lib::DataModel) {
     });
 }
 
-// this function is just used to test and confirm if the data is actually included in the hashmap(object/dictionary)
-// and if it can be queried, it would eventually be taken out when we get to testing
+// use this to get the signature, nonce and amount to get some remittance for the input params
 #[update]
 async fn get_remittance(
     ticker: String,
     chain_name: String,
     chain_id: String,
     recipient_address: String,
-) -> String {
+) -> remittance::RemittanceReply {
     let amount = get_balance(ticker, chain_name, chain_id, recipient_address.clone()).balance;
     let nonce = random::get_random_number();
 
@@ -150,8 +122,11 @@ async fn get_remittance(
         .await
         .expect("ERROR_SIGNING_MESSAGE");
 
-    // TODO return not only string but also information about the nonce and amount
-    message.signature_hex
+    remittance::RemittanceReply{
+        signature: format!("0x{}",message.signature_hex),
+        nonce,
+        amount
+    }
 }
 
 #[query]
@@ -197,7 +172,7 @@ async fn derive_pk() -> Vec<u8> {
     .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))
     .unwrap();
 
-    return res.public_key;
+    res.public_key
 }
 
 #[update]
@@ -244,7 +219,7 @@ async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
         Principal::management_canister(),
         "sign_with_ecdsa",
         (request,),
-        25_000_000_000,
+        remittance::MAX_CYCLE
     )
     .await
     .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
