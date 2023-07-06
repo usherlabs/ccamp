@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 candid = "0.7.4"
 ic-cdk = "0.5.1"
 ic-cdk-macros = "0.5.1"
+ic-cdk-timers = "0.1.1"
 serde = "1.0.126"
 serde_derive = "1.0.126"
 hex = "0.4.3"
@@ -19,10 +20,10 @@ sha2 = "0.10.6"
 k256 = { version = "0.12.0", features = ["ecdsa"] }
 # Enable `custom` feature of k256's getrandom dependency. See lib.rs for more details.
 getrandom = { version = "0.2", features = ["custom"] }
+rand = { version = "0.8.5", features = ["getrandom"]}
 lib = {path = "../lib" }
 ethereum-rlp = "0.2.3"
 easy-hasher = "2.2.1"
 libsecp256k1 = { version = "0.6.0", default-features = false, features = ["lazy-static-context"] }
 futures = "0.3.25"
 eth-encode-packed = "0.1.0"
-rand = "0.8.5"

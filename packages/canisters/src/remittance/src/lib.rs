@@ -2,11 +2,11 @@ use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
-use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 
 mod ecdsa;
 mod ethereum;
+mod random;
 mod remittance;
 mod utils;
 
@@ -37,7 +37,8 @@ fn init() {
     let caller_principal_id = caller();
     OWNER.with(|token| {
         token.replace(Some(caller_principal_id));
-    })
+    });
+    random::init_ic_rand();
 }
 
 // upon upgrade of contracts, state is  lost
@@ -139,25 +140,8 @@ async fn get_remittance(
     chain_id: String,
     recipient_address: String,
 ) -> String {
-    // validate the address and the chain
-    if recipient_address.len() != 42 {
-        panic!("INVALID_ADDRESS")
-    };
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    // validate the address and the chain
-
-    let account = REMITTANCE.with(|remittance| {
-        let existing_key = (ticker, chain, recipient_address.clone());
-        remittance
-            .borrow()
-            .get(&existing_key)
-            .expect("REMITTANCE_NOT_FOUND ")
-            .clone()
-    });
-
-    // TODO use a random number generator to fetch the nonce
-    let nonce = 10;
-    let amount = account.balance;
+    let amount = get_balance(ticker, chain_name, chain_id, recipient_address.clone()).balance;
+    let nonce = random::get_random_number();
 
     let (bytes_hash, _) =
         remittance::produce_remittance_hash(nonce, amount, &recipient_address[..]);
@@ -242,6 +226,7 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
     })
 }
 
+
 #[update]
 async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
@@ -269,6 +254,7 @@ async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
         signature_hex: utils::vec_u8_to_string(&full_signature),
     })
 }
+
 
 #[query]
 async fn verify(

@@ -91,7 +91,7 @@ impl EcdsaKeyIds {
 // Our custom implementation always fails, which is sufficient here because
 // we only use the k256 crate for verifying secp256k1 signatures, and such
 // signature verification does not require any randomness.
-getrandom::register_custom_getrandom!(always_fail);
-pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}
+// getrandom::register_custom_getrandom!(always_fail);
+// pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
+//     Err(getrandom::Error::UNSUPPORTED)
+// }
