@@ -37,6 +37,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     }
 
     function unlockFunds(uint nonce, uint amount, bytes calldata signature) public nonReentrant {
+        require(remittanceCanister != address(0), "INVALID_REMITTANCE_CANISTER");
         require(!usedSignatures[signature], "USED_SIGNATURE");
         require(getBalance() >= amount, "AMOUNT > CONTRACT_BALANCE");
 
