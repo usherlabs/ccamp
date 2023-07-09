@@ -40,6 +40,10 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         emit FundsDeposited(msg.sender, amount);
     }
 
+    function setRemittanceCanisterAddress(address _remittanceCanister) public onlyOwner{
+        remittanceCanister = _remittanceCanister;
+    }
+
     function unlockFunds(uint nonce, uint amount, bytes calldata signature) public nonReentrant {
         //TODO instead require that the contract has been initialized
         require(initialized, "CONTRACT_UNINITIALIZED");
