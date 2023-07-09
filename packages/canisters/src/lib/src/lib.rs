@@ -1,6 +1,6 @@
 use candid::{CandidType, Principal};
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Display};
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct DataModel {
@@ -24,6 +24,16 @@ impl Chain {
             ("polygon", "137") => Some(Chain::Polygon137),
             ("icp", _) => Some(Chain::Icp),
             _ => None,
+        }
+    }
+}
+
+impl Display for Chain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ethereum1 => write!(f, "ethereum:1"),
+            Self::Polygon137 => write!(f, "polygon:137"),
+            Self::Icp => write!(f, "icp"),
         }
     }
 }

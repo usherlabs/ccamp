@@ -35,14 +35,14 @@ async fn publish() {
     // which would then generate the data instead of hardcoding it
     let sample_increase = lib::DataModel {
         ticker: "USDC".to_string(),
-        recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
+        recipient_address: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4".to_string(),
         chain: lib::Chain::Ethereum1,
         amount: 1000000,
     };
 
     let sample_decrease = lib::DataModel {
         ticker: "USDC".to_string(),
-        recipient_address: "0x1234567890123456789012345678901234567890".to_string(),
+        recipient_address: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4".to_string(),
         chain: lib::Chain::Ethereum1,
         amount: -500000,
     };

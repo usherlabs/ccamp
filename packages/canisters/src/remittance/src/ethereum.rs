@@ -11,8 +11,8 @@ pub const SIGNATURE_HASH_PREFIX: [u8; 28] = [
 
 // use this function to double has a message
 // so it can be verified on the ethereum network
-pub fn hash_eth_message(message: Vec<u8>) -> Vec<u8> {
-    let message_hash = easy_hasher::raw_keccak256(message).to_vec();
+pub fn hash_eth_message(message: &Vec<u8>) -> Vec<u8> {
+    let message_hash = easy_hasher::raw_keccak256(message.clone()).to_vec();
     let eth_prefixed_hash =
         easy_hasher::raw_keccak256(concatenate_vectors(&[&SIGNATURE_HASH_PREFIX, &message_hash]))
             .to_vec();
@@ -105,9 +105,9 @@ pub fn get_address_from_public_key(public_key: Vec<u8>) -> Result<String, String
 }
 
 
-pub async fn sign_message(message: Vec<u8>) -> Result<ecdsa::SignatureReply, String> {
+pub async fn sign_message(message: &Vec<u8>) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
-    let message_hash = ethereum::hash_eth_message(message);
+    let message_hash = ethereum::hash_eth_message(&message);
 
     // sign the message
     let public_key = derive_pk().await;

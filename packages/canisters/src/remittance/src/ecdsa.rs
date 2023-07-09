@@ -6,7 +6,7 @@ use ic_cdk::export::{
 
 #[derive(CandidType, Serialize, Debug)]
 pub struct PublicKeyReply {
-    pub public_key_hex: String,
+    pub sec1_pk: String,
     pub etherum_pk: String,
 }
 
@@ -58,7 +58,6 @@ pub enum EcdsaCurve {
     #[serde(rename = "secp256k1")]
     Secp256k1,
 }
-
 
 pub enum EcdsaKeyIds {
     #[allow(unused)]

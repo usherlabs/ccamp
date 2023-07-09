@@ -24,13 +24,19 @@ pub type Store = HashMap<(String, lib::Chain, String), Account>;
 
 #[derive(CandidType, Deserialize, Debug)]
 pub struct RemittanceReply {
+    pub hash: String,
     pub signature: String,
     pub nonce: u64,
     pub amount: u64,
 }
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
-pub fn produce_remittance_hash(nonce: u64, amount: u64, address: &str) -> (Vec<u8>, String) {
+pub fn produce_remittance_hash(
+    nonce: u64,
+    amount: u64,
+    address: &str,
+    chain_id: &str,
+) -> (Vec<u8>, String) {
     // convert the address to bytes format
     let address: [u8; 20] = utils::string_to_vec_u8(address).try_into().unwrap();
     // pack the encoded bytes
@@ -38,6 +44,7 @@ pub fn produce_remittance_hash(nonce: u64, amount: u64, address: &str) -> (Vec<u
         SolidityDataType::Number(U256::from(nonce)),
         SolidityDataType::Number(U256::from(amount)),
         SolidityDataType::Address(Address::from(address)),
+        SolidityDataType::String(chain_id)
     ];
     let (_bytes, hash) = eth_encode_packed::abi::encode_packed(&input);
 
