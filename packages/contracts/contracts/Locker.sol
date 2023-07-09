@@ -13,6 +13,8 @@ import {VerifySignature} from "./lib/VerifySignature.sol";
 // import "hardhat/console.sol";
 
 contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+    bool initialized;
+    string public chainId;
     address public remittanceCanister;
     mapping(bytes => bool) usedSignatures;
 
@@ -20,12 +22,14 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     event FundsUnlocked(address indexed recipient, uint amount);
     event hash(bytes32 data);
 
-    function initialize(address _remittanceCanister) public initializer {
+    function initialize(address _remittanceCanister, string calldata _chainId) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
         remittanceCanister = _remittanceCanister;
+        chainId = _chainId;
+        initialized = true;
     }
 
     receive() external payable {
@@ -37,11 +41,13 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     }
 
     function unlockFunds(uint nonce, uint amount, bytes calldata signature) public nonReentrant {
-        require(remittanceCanister != address(0), "INVALID_REMITTANCE_CANISTER");
-        require(!usedSignatures[signature], "USED_SIGNATURE");
+        //TODO instead require that the contract has been initialized
+        require(initialized, "CONTRACT_UNINITIALIZED");
         require(getBalance() >= amount, "AMOUNT > CONTRACT_BALANCE");
+        require(!usedSignatures[signature], "USED_SIGNATURE");
 
-        bytes32 dataHash = keccak256(abi.encodePacked(nonce, amount, msg.sender));
+        bytes32 dataHash = keccak256(abi.encodePacked(nonce, amount, msg.sender, chainId));
+        emit hash(dataHash);
         require(validateSignature(dataHash, signature), "INVALID_SIGNATURE");
 
         usedSignatures[signature] = true;
