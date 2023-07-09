@@ -66,4 +66,4 @@ delete all canisters -> dfx canister delete --all -y
 get public key -> dfx canister call remittance public_key 
 subscribe remittance canister to data collection pubsub -> dfx canister call remittance setup_subscribe '(principal "c2lt4-zmaaa-aaaaa-qaaiq-cai")'
 publish new data from data canister to remittance canister -> dfx canister call data_collection publish
-query remittance canister to make sure it gets the data -> dfx canister call remittance get_remittance '("USDC","ethereum","1","0x1234567890123456789012345678901234567890")'
+query remittance canister to make sure it gets the data -> dfx canister call remittance get_remittance '("USDC","ethereum","1","0x5B38Da6a701c568545dCfcB03FcB875f56beddC4")'

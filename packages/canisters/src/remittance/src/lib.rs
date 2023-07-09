@@ -1,14 +1,16 @@
 use candid::Principal;
+use easy_hasher::easy_hasher;
 use ic_cdk_macros::*;
 use lib;
 use std::cell::RefCell;
+use utils::vec_u8_to_string;
 
 mod ecdsa;
 mod ethereum;
+mod owner;
 mod random;
 mod remittance;
 mod utils;
-mod owner;
 
 // TODO research on preserving state of dc and r canisters when upgrade happens
 
@@ -17,7 +19,6 @@ thread_local! {
     static REMITTANCE: RefCell<remittance::Store> = RefCell::default();
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
-
 
 // ----------------------------------- init and upgrade hooks
 #[init]
@@ -33,7 +34,6 @@ fn upgrade() {
     init();
 }
 // ----------------------------------- init and upgrade hooks
-
 
 // get deployer of contract
 #[query]
@@ -64,7 +64,6 @@ async fn setup_subscribe(publisher_id: Principal) {
         }
     });
 }
-
 
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
@@ -112,20 +111,31 @@ async fn get_remittance(
     chain_id: String,
     recipient_address: String,
 ) -> remittance::RemittanceReply {
-    let amount = get_balance(ticker, chain_name, chain_id, recipient_address.clone()).balance;
+    let amount = get_balance(
+        ticker,
+        chain_name.clone(),
+        chain_id.clone(),
+        recipient_address.clone(),
+    )
+    .balance;
     let nonce = random::get_random_number();
+    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
 
-    let (bytes_hash, _) =
-        remittance::produce_remittance_hash(nonce, amount, &recipient_address[..]);
-
-    let message = ethereum::sign_message(bytes_hash)
+    let (bytes_hash, _) = remittance::produce_remittance_hash(
+        nonce,
+        amount,
+        &recipient_address[..],
+        &chain.to_string(),
+    );
+    let message = ethereum::sign_message(&bytes_hash)
         .await
         .expect("ERROR_SIGNING_MESSAGE");
 
-    remittance::RemittanceReply{
-        signature: format!("0x{}",message.signature_hex),
+    remittance::RemittanceReply {
+        hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
+        signature: format!("0x{}", message.signature_hex),
         nonce,
-        amount
+        amount,
     }
 }
 
@@ -196,16 +206,15 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
         ethereum::get_address_from_public_key(res.public_key.clone()).expect("INVALID_PUBLIC_KEY");
 
     Ok(ecdsa::PublicKeyReply {
-        public_key_hex: hex::encode(res.public_key),
+        sec1_pk: hex::encode(res.public_key),
         etherum_pk: address,
     })
 }
 
-
 #[update]
 async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
-    let message_hash = ethereum::hash_eth_message(message.into_bytes());
+    let message_hash = ethereum::hash_eth_message(&message.into_bytes());
 
     // sign the message
     let public_key = derive_pk().await;
@@ -219,7 +228,7 @@ async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
         Principal::management_canister(),
         "sign_with_ecdsa",
         (request,),
-        remittance::MAX_CYCLE
+        remittance::MAX_CYCLE,
     )
     .await
     .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
@@ -230,16 +239,15 @@ async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
     })
 }
 
-
 #[query]
 async fn verify(
     signature_hex: String,
     message: String,
-    public_key_hex: String,
+    sec1_pk: String,
 ) -> Result<ecdsa::SignatureVerificationReply, String> {
     let signature_bytes = hex::decode(&signature_hex).expect("FAILED_TO_HEXDECODE_SIGNATURE");
-    let pubkey_bytes = hex::decode(&public_key_hex).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
-    let message_bytes = ethereum::hash_eth_message(message.into_bytes());
+    let pubkey_bytes = hex::decode(&sec1_pk).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
+    let message_bytes = ethereum::hash_eth_message(&message.into_bytes());
 
     use k256::ecdsa::signature::Verifier;
     let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
