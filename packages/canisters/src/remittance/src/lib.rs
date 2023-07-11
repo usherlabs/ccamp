@@ -43,8 +43,8 @@ fn owner() -> String {
 
 // @dev test function
 #[query]
-fn greet(name: String) -> String {
-    format!("Hello data_collection canister, {}!", name)
+fn name() -> String {
+    format!("remittance canister")
 }
 
 // we call this method, with the id of the data_collection canister

@@ -1,0 +1,10 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig",
+	"display": "Validator",
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2015",
+		"moduleResolution": "node",
+		"rootDir": "."
+	}
+}

@@ -1,3 +1,4 @@
+use candid::Principal;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
@@ -10,8 +11,8 @@ thread_local! {
 
 // @dev testing command
 #[query]
-fn greet(name: String) -> String {
-    format!("Hello data_collection canister, {}!", name)
+fn name() -> String {
+    format!("data_collection canister")
 }
 
 // this function is going to be called by the remittance canister
@@ -24,6 +25,11 @@ fn subscribe(subscriber: lib::Subscriber) {
             .borrow_mut()
             .insert(subscriber_principal_id, subscriber);
     });
+}
+
+#[query]
+fn is_subscribed(principal: Principal) -> bool {
+    SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
 }
 
 // we would use this method to publish data to the subscriber

@@ -20,6 +20,7 @@ type RemittanceReply = record {
 
 service : {
 	"owner" : () -> (text) query;
+	"name" : () -> (text) query;
 	"request" : () -> (text) query;
 	"setup_subscribe" : (publisher_id : principal) -> ();
 	"get_remittance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (RemittanceReply);
