@@ -224,7 +224,8 @@ fn get_witheld_balance(
     if recipient_address.len() != 42 {
         panic!("INVALID_ADDRESS")
     };
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    let chain: lib::Chain =
+        lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
     let existing_key = (ticker.clone(), chain.clone(), recipient_address.clone());
 
     let sum = WITHELD_AMOUNTS.with(|witheld_amount| {
@@ -238,6 +239,54 @@ fn get_witheld_balance(
     });
 
     remittance::Account { balance: sum }
+}
+
+#[update]
+fn clear_witheld_balance(
+    ticker: String,
+    chain_name: String,
+    chain_id: String,
+    recipient_address: String,
+) -> remittance::Account {
+    let chain: lib::Chain =
+        lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    let hash_key = (ticker.clone(), chain.clone(), recipient_address.clone());
+
+    let redeemed_balance = get_witheld_balance(
+        ticker.clone(),
+        chain_name.clone(),
+        chain_id.clone(),
+        recipient_address.clone(),
+    );
+    // if this user has some pending withdrawals for these parameters
+    if redeemed_balance.balance > 0 {
+        // then for each amount delete the entry from th ewitheld balane
+        WITHELD_AMOUNTS.with(|witheld_amount| {
+            let mut mut_witheld_amount = witheld_amount.borrow_mut();
+            mut_witheld_amount
+                .get(&hash_key)
+                .unwrap()
+                .iter()
+                .for_each(|amount| {
+                    WITHELD_REMITTANCE.with(|witheld_remittance| {
+                        witheld_remittance.borrow_mut().remove(&(
+                            ticker.clone(),
+                            chain.clone(),
+                            recipient_address.clone(),
+                            *amount,
+                        ));
+                    })
+                });
+            mut_witheld_amount.remove(&hash_key);
+        });
+        // add the total back to the available balance
+        REMITTANCE.with(|remittance| {
+            if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
+                existing_data.balance = existing_data.balance + redeemed_balance.balance;
+            }
+        });
+    }
+    return redeemed_balance;
 }
 
 #[update]
@@ -265,7 +314,3 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
         etherum_pk: address,
     })
 }
-
-// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc4657468657265756d3a31
-// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc431
-// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc4657468657265756d3a31
