@@ -2,7 +2,7 @@ use candid::Principal;
 use easy_hasher::easy_hasher;
 use ic_cdk_macros::*;
 use lib;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -16,7 +16,9 @@ mod utils;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
-    static REMITTANCE: RefCell<remittance::Store> = RefCell::default();
+    static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
+    static WITHELD_REMITTANCE: RefCell<remittance::WitheldBalanceStore> = RefCell::default();
+    static WITHELD_AMOUNTS: RefCell<remittance::WitheldAmountsStore> = RefCell::default();
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
 
@@ -71,76 +73,122 @@ async fn setup_subscribe(publisher_id: Principal) {
 fn update_remittance(new_remittances: Vec<lib::DataModel>) {
     owner::only_publisher();
     for new_remittance in new_remittances {
-        update_balance(new_remittance);
+        remittance::update_balance(new_remittance);
     }
-}
-
-// it essentially uses the mapping (ticker, chain, recipientaddress) => {DataModel}
-// so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
-// then the price is updated, otherwise the entry is created
-fn update_balance(new_remittance: lib::DataModel) {
-    owner::only_publisher();
-    REMITTANCE.with(|remittance| {
-        let mut remittance_store = remittance.borrow_mut();
-
-        let hash_key = (
-            new_remittance.ticker.clone(),
-            new_remittance.chain.clone(),
-            new_remittance.recipient_address.clone(),
-        );
-
-        if let Some(existing_data) = remittance_store.get_mut(&hash_key) {
-            existing_data.balance =
-                (existing_data.balance as i64 + new_remittance.amount as i64) as u64;
-        } else {
-            remittance_store.insert(
-                hash_key,
-                remittance::Account {
-                    balance: new_remittance.amount as u64,
-                },
-            );
-        }
-    });
 }
 
 // use this to get the signature, nonce and amount to get some remittance for the input params
 #[update]
-async fn get_remittance(
+async fn remit(
     ticker: String,
     chain_name: String,
     chain_id: String,
     recipient_address: String,
+    amount: u64,
 ) -> remittance::RemittanceReply {
-    let amount = get_balance(
-        ticker,
+    // make sure the amount being remitted is none zero
+    assert!(amount > 0, "AMOUNT < 0");
+    // generate key values
+    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    let hash_key = (ticker.clone(), chain.clone(), recipient_address.clone());
+
+    // check if there is a witheld 'balance' for this particular amount
+    let witheld_balance = remittance::get_remitted_balance(
+        ticker.clone(),
         chain_name.clone(),
         chain_id.clone(),
         recipient_address.clone(),
-    )
-    .balance;
-    let nonce = random::get_random_number();
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-
-    let (bytes_hash, _) = remittance::produce_remittance_hash(
-        nonce,
         amount,
-        &recipient_address[..],
-        &chain.to_string(),
     );
-    let message = ethereum::sign_message(&bytes_hash)
-        .await
-        .expect("ERROR_SIGNING_MESSAGE");
 
-    remittance::RemittanceReply {
-        hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
-        signature: format!("0x{}", message.signature_hex),
-        nonce,
-        amount,
+    let response: remittance::RemittanceReply;
+    // if the amount exists in a witheld map then return the cached signature and nonce
+    if witheld_balance.balance == amount {
+        let (bytes_hash, _) = remittance::produce_remittance_hash(
+            witheld_balance.nonce,
+            amount,
+            &recipient_address[..],
+            &chain.to_string(),
+        );
+
+        response = remittance::RemittanceReply {
+            hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
+            signature: witheld_balance.signature.clone(),
+            nonce: witheld_balance.nonce,
+            amount,
+        };
+    } else {
+        let nonce = random::get_random_number();
+        let (bytes_hash, _) = remittance::produce_remittance_hash(
+            nonce,
+            amount,
+            &recipient_address[..],
+            &chain.to_string(),
+        );
+        let balance = get_available_balance(
+            ticker.clone(),
+            chain_name.clone(),
+            chain_id.clone(),
+            recipient_address.clone(),
+        )
+        .balance;
+
+        // make sure this user actually has enough funds to withdraw
+        assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
+
+        // generate a signature for these parameters
+        let signature_reply = ethereum::sign_message(&bytes_hash)
+            .await
+            .expect("ERROR_SIGNING_MESSAGE");
+        let signature_string = format!("0x{}", signature_reply.signature_hex);
+
+        // deduct amount to remit from main balance
+        REMITTANCE.with(|remittance| {
+            if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
+                existing_data.balance = existing_data.balance - amount;
+            }
+        });
+        // add amount to mapping (ticker, chain, recipient) => [amount_1, amount_2, amount_3]
+        // to keep track of individual amounts remitted per (ticker, chain, recipient) combination
+        WITHELD_AMOUNTS.with(|witheld_amount| {
+            // Append value to existing entry or create new entry
+            witheld_amount
+                .borrow_mut()
+                .entry(hash_key.clone())
+                .or_insert(Vec::new())
+                .push(amount);
+        });
+        // update the witheld balance of the said user and generate a new signature for it
+        WITHELD_REMITTANCE.with(|witheld| {
+            let mut witheld_remittance_store = witheld.borrow_mut();
+            witheld_remittance_store.insert(
+                (
+                    ticker.clone(),
+                    chain.clone(),
+                    recipient_address.clone(),
+                    amount,
+                ),
+                remittance::WitheldAccount {
+                    balance: amount,
+                    signature: signature_string.clone(),
+                    nonce,
+                },
+            );
+        });
+        // create response object
+        response = remittance::RemittanceReply {
+            hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
+            signature: signature_string.clone(),
+            nonce,
+            amount,
+        };
     }
+
+    response
 }
 
 #[query]
-fn get_balance(
+fn get_available_balance(
     ticker: String,
     chain_name: String,
     chain_id: String,
@@ -158,31 +206,38 @@ fn get_balance(
         remittance
             .borrow()
             .get(&existing_key)
-            .expect("REMITTANCE_NOT_FOUND ")
-            .clone()
+            .cloned()
+            .unwrap_or_default()
     });
 
     amount
 }
 
-async fn derive_pk() -> Vec<u8> {
-    let request = ecdsa::ECDSAPublicKey {
-        canister_id: None,
-        derivation_path: vec![],
-        // TODO set this as an environment variable
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+#[query]
+fn get_witheld_balance(
+    ticker: String,
+    chain_name: String,
+    chain_id: String,
+    recipient_address: String,
+) -> remittance::Account {
+    // validate the address and the chain
+    if recipient_address.len() != 42 {
+        panic!("INVALID_ADDRESS")
     };
+    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+    let existing_key = (ticker.clone(), chain.clone(), recipient_address.clone());
 
-    let (res,): (ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(
-        Principal::management_canister(),
-        "ecdsa_public_key",
-        (request,),
-    )
-    .await
-    .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))
-    .unwrap();
+    let sum = WITHELD_AMOUNTS.with(|witheld_amount| {
+        let witheld_amount = witheld_amount.borrow();
+        let values = witheld_amount.get(&existing_key);
 
-    res.public_key
+        match values {
+            Some(vec) => vec.iter().sum::<u64>(),
+            None => 0,
+        }
+    });
+
+    remittance::Account { balance: sum }
 }
 
 #[update]
@@ -211,51 +266,6 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
     })
 }
 
-#[update]
-async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
-    // hash the message to be signed
-    let message_hash = ethereum::hash_eth_message(&message.into_bytes());
-
-    // sign the message
-    let public_key = derive_pk().await;
-    let request = ecdsa::SignWithECDSA {
-        message_hash: message_hash.clone(),
-        derivation_path: vec![],
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
-    };
-
-    let (response,): (ecdsa::SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
-        Principal::management_canister(),
-        "sign_with_ecdsa",
-        (request,),
-        remittance::MAX_CYCLE,
-    )
-    .await
-    .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
-
-    let full_signature = ethereum::get_signature(&response.signature, &message_hash, &public_key);
-    Ok(ecdsa::SignatureReply {
-        signature_hex: utils::vec_u8_to_string(&full_signature),
-    })
-}
-
-#[query]
-async fn verify(
-    signature_hex: String,
-    message: String,
-    sec1_pk: String,
-) -> Result<ecdsa::SignatureVerificationReply, String> {
-    let signature_bytes = hex::decode(&signature_hex).expect("FAILED_TO_HEXDECODE_SIGNATURE");
-    let pubkey_bytes = hex::decode(&sec1_pk).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
-    let message_bytes = ethereum::hash_eth_message(&message.into_bytes());
-
-    use k256::ecdsa::signature::Verifier;
-    let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
-        .expect("DESERIALIZE_SIGNATURE_FAILED");
-    let is_signature_valid = k256::ecdsa::VerifyingKey::from_sec1_bytes(&pubkey_bytes)
-        .expect("DESERIALIZE_SEC1_ENCODING_FAILED")
-        .verify(&message_bytes, &signature)
-        .is_ok();
-
-    Ok(ecdsa::SignatureVerificationReply { is_signature_valid })
-}
+// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc4657468657265756d3a31
+// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc431
+// 000000000000000000000000000000000000000000000000fc8588618eaa8b31000000000000000000000000000000000000000000000000000000000000000a5b38da6a701c568545dcfcb03fcb875f56beddc4657468657265756d3a31
