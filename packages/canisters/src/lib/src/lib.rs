@@ -2,12 +2,69 @@ use candid::{CandidType, Principal};
 use serde::Deserialize;
 use std::{collections::BTreeMap, fmt::Display};
 
+mod constants;
+mod utils;
+
+#[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
+pub struct Wallet {
+    pub address: Vec<u8>,
+}
+impl TryFrom<String> for Wallet {
+    type Error = String;
+    fn try_from(address: String) -> Result<Self, Self::Error> {
+        let starts_from: usize;
+        if address.starts_with("0x") {
+            starts_from = 2;
+        } else {
+            starts_from = 0;
+        }
+
+        let result = (starts_from..address.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&address[i..i + 2], 16).unwrap())
+            .collect::<Vec<u8>>();
+
+        if result.len() != 20 {
+            Err(String::from("INVALID_ADDRESSS_LENGTH"))
+        } else {
+            Ok(Self { address: result })
+        }
+    }
+}
+impl Display for Wallet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string_address = self
+            .address
+            .iter()
+            .map(|r| format!("{:02x}", r))
+            .collect::<Vec<String>>()
+            .join("")
+            .to_string();
+
+        write!(f, "0x{}", string_address)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
+pub enum Action {
+    Adjust,
+    Deposit,
+    Withdraw,
+    CancelWithdraw,
+}
+
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct DataModel {
-    pub ticker: String,
-    pub recipient_address: String,
-    pub amount: i64,
+    pub token: Wallet,
     pub chain: Chain,
+    pub amount: i64,
+    pub account: Wallet,
+    pub action: Action,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct Subscriber {
+    pub topic: String,
 }
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
@@ -16,18 +73,24 @@ pub enum Chain {
     Polygon137,
     Icp,
 }
-impl Chain {
-    pub fn from_chain_details(chain_name: &str, chain_id: &str) -> Option<Chain> {
+impl TryFrom<String> for Chain {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let details: Vec<&str> = value.split(':').collect();
+
+        let chain_name = details[0];
+        let chain_id = details[1];
+
         let lowercase_chain_name = &chain_name.to_lowercase()[..];
         match (lowercase_chain_name, chain_id) {
-            ("ethereum", "1") => Some(Chain::Ethereum1),
-            ("polygon", "137") => Some(Chain::Polygon137),
-            ("icp", _) => Some(Chain::Icp),
-            _ => None,
+            ("ethereum", "1") => Ok(Chain::Ethereum1),
+            ("polygon", "137") => Ok(Chain::Polygon137),
+            ("icp", _) => Ok(Chain::Icp),
+            _ => Err(String::from("INVALID CHAIN")),
         }
     }
 }
-
 impl Display for Chain {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -37,10 +100,16 @@ impl Display for Chain {
         }
     }
 }
+impl Chain {
+    fn get_chain_details(&self) -> (String, String) {
+        let chain_string = self.to_string();
+        let chain_details: Vec<&str> = chain_string.split(":").collect();
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct Subscriber {
-    pub topic: String,
+        (
+            String::from(chain_details[0]),
+            String::from(*chain_details.get(1).unwrap_or(&"")),
+        )
+    }
 }
 
 pub type SubscriberStore = BTreeMap<Principal, Subscriber>;

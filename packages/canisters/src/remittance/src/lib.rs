@@ -80,26 +80,23 @@ fn update_remittance(new_remittances: Vec<lib::DataModel>) {
 // use this to get the signature, nonce and amount to get some remittance for the input params
 #[update]
 async fn remit(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
+    token: String,
+    chain: String,
+    account: String,
     amount: u64,
 ) -> remittance::RemittanceReply {
     // make sure the amount being remitted is none zero
     assert!(amount > 0, "AMOUNT < 0");
     // generate key values
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    let hash_key = (ticker.clone(), chain.clone(), recipient_address.clone());
+    let chain: lib::Chain = chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
+
+    let hash_key = (token.clone(), chain.clone(), account.clone());
 
     // check if there is a witheld 'balance' for this particular amount
-    let witheld_balance = remittance::get_remitted_balance(
-        ticker.clone(),
-        chain_name.clone(),
-        chain_id.clone(),
-        recipient_address.clone(),
-        amount,
-    );
+    let witheld_balance =
+        remittance::get_remitted_balance(token.clone(), chain.clone(), account.clone(), amount);
 
     let response: remittance::RemittanceReply;
     // if the amount exists in a witheld map then return the cached signature and nonce
@@ -107,7 +104,7 @@ async fn remit(
         let (bytes_hash, _) = remittance::produce_remittance_hash(
             witheld_balance.nonce,
             amount,
-            &recipient_address[..],
+            &account.to_string(),
             &chain.to_string(),
         );
 
@@ -119,19 +116,10 @@ async fn remit(
         };
     } else {
         let nonce = random::get_random_number();
-        let (bytes_hash, _) = remittance::produce_remittance_hash(
-            nonce,
-            amount,
-            &recipient_address[..],
-            &chain.to_string(),
-        );
-        let balance = get_available_balance(
-            ticker.clone(),
-            chain_name.clone(),
-            chain_id.clone(),
-            recipient_address.clone(),
-        )
-        .balance;
+        let (bytes_hash, _) =
+            remittance::produce_remittance_hash(nonce, amount, &account.to_string(), &chain.to_string());
+        let balance =
+            get_available_balance(token.to_string(), chain.to_string(), account.to_string()).balance;
 
         // make sure this user actually has enough funds to withdraw
         assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
@@ -148,8 +136,8 @@ async fn remit(
                 existing_data.balance = existing_data.balance - amount;
             }
         });
-        // add amount to mapping (ticker, chain, recipient) => [amount_1, amount_2, amount_3]
-        // to keep track of individual amounts remitted per (ticker, chain, recipient) combination
+        // add amount to mapping (token, chain, recipient) => [amount_1, amount_2, amount_3]
+        // to keep track of individual amounts remitted per (token, chain, recipient) combination
         WITHELD_AMOUNTS.with(|witheld_amount| {
             // Append value to existing entry or create new entry
             witheld_amount
@@ -162,12 +150,7 @@ async fn remit(
         WITHELD_REMITTANCE.with(|witheld| {
             let mut witheld_remittance_store = witheld.borrow_mut();
             witheld_remittance_store.insert(
-                (
-                    ticker.clone(),
-                    chain.clone(),
-                    recipient_address.clone(),
-                    amount,
-                ),
+                (token.clone(), chain.clone(), account.clone(), amount),
                 remittance::WitheldAccount {
                     balance: amount,
                     signature: signature_string.clone(),
@@ -188,21 +171,15 @@ async fn remit(
 }
 
 #[query]
-fn get_available_balance(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
-) -> remittance::Account {
-    // validate the address and the chain
-    if recipient_address.len() != 42 {
-        panic!("INVALID_ADDRESS")
-    };
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
+fn get_available_balance(token: String, chain: String, account: String) -> remittance::Account {
+    let chain: lib::Chain= chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
     // validate the address and the chain
 
+    // get available balance for this key
     let amount = REMITTANCE.with(|remittance| {
-        let existing_key = (ticker, chain, recipient_address.clone());
+        let existing_key = (token, chain, account);
         remittance
             .borrow()
             .get(&existing_key)
@@ -215,19 +192,17 @@ fn get_available_balance(
 
 #[query]
 fn get_witheld_balance(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
+    token: String,
+    chain: String,
+    account: String,
 ) -> remittance::Account {
-    // validate the address and the chain
-    if recipient_address.len() != 42 {
-        panic!("INVALID_ADDRESS")
-    };
-    let chain: lib::Chain =
-        lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    let existing_key = (ticker.clone(), chain.clone(), recipient_address.clone());
+    let chain: lib::Chain= chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
 
+    let existing_key = (token.clone(), chain.clone(), account.clone());
+
+    // sum up all the amounts in the witheld_amount value of this key
     let sum = WITHELD_AMOUNTS.with(|witheld_amount| {
         let witheld_amount = witheld_amount.borrow();
         let values = witheld_amount.get(&existing_key);
@@ -243,24 +218,24 @@ fn get_witheld_balance(
 
 #[update]
 fn clear_witheld_balance(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
+    token: String,
+    chain: String,
+    account: String,
 ) -> remittance::Account {
-    let chain: lib::Chain =
-        lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    let hash_key = (ticker.clone(), chain.clone(), recipient_address.clone());
+    let chain: lib::Chain= chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
+
+    let hash_key = (token.clone(), chain.clone(), account.clone());
 
     let redeemed_balance = get_witheld_balance(
-        ticker.clone(),
-        chain_name.clone(),
-        chain_id.clone(),
-        recipient_address.clone(),
+        token.to_string(),
+        chain.to_string(),
+        account.to_string(),
     );
     // if this user has some pending withdrawals for these parameters
     if redeemed_balance.balance > 0 {
-        // then for each amount delete the entry from th ewitheld balane
+        // then for each amount delete the entry/cache from the witheld balance
         WITHELD_AMOUNTS.with(|witheld_amount| {
             let mut mut_witheld_amount = witheld_amount.borrow_mut();
             mut_witheld_amount
@@ -270,16 +245,16 @@ fn clear_witheld_balance(
                 .for_each(|amount| {
                     WITHELD_REMITTANCE.with(|witheld_remittance| {
                         witheld_remittance.borrow_mut().remove(&(
-                            ticker.clone(),
+                            token.clone(),
                             chain.clone(),
-                            recipient_address.clone(),
+                            account.clone(),
                             *amount,
                         ));
                     })
                 });
             mut_witheld_amount.remove(&hash_key);
         });
-        // add the total back to the available balance
+        // add the witheld total back to the available balance
         REMITTANCE.with(|remittance| {
             if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
                 existing_data.balance = existing_data.balance + redeemed_balance.balance;

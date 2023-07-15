@@ -1,4 +1,9 @@
 // define all major types and their implementation here
+
+// TODO VALIDATE incoming remittance requests
+// ----- Make sure everyone has valid balances for deductions i.e negative adjustments
+// ----- Make sure the net, adjustment is zero i.e make sure no balance is created nor destroyed,
+// ----- Only moved from one place to the other
 #![warn(dead_code)]
 use crate::{owner, utils};
 use candid::CandidType;
@@ -49,9 +54,9 @@ pub struct RemittanceReply {
     pub amount: u64,
 }
 
-pub type AvailableBalanceStore = HashMap<(String, lib::Chain, String), Account>;
-pub type WitheldBalanceStore = HashMap<(String, lib::Chain, String, u64), WitheldAccount>;
-pub type WitheldAmountsStore = HashMap<(String, lib::Chain, String), Vec<u64>>;
+pub type AvailableBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Account>;
+pub type WitheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u64), WitheldAccount>;
+pub type WitheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn produce_remittance_hash(
@@ -74,22 +79,18 @@ pub fn produce_remittance_hash(
     (_bytes, hash)
 }
 
+// given some details, which are the parameters of the function
+// we want to get the balance signature generated when a remit request created by this account
+// it would return a balance of 0 and no signature if a user has not made a remit request for the specified "amount"
 pub fn get_remitted_balance(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
+    token: lib::Wallet,
+    chain: lib::Chain,
+    account: lib::Wallet,
     amount: u64,
 ) -> WitheldAccount {
-    // validate the address and the chain
-    if recipient_address.len() != 42 {
-        panic!("INVALID_ADDRESS")
-    };
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    // validate the address and the chain
 
     let witheld_amount = crate::WITHELD_REMITTANCE.with(|witheld| {
-        let existing_key = (ticker, chain, recipient_address.clone(), amount);
+        let existing_key = (token, chain, account.clone(), amount);
         witheld
             .borrow()
             .get(&existing_key)
@@ -109,9 +110,9 @@ pub fn update_balance(new_remittance: lib::DataModel) {
         let mut remittance_store = remittance.borrow_mut();
 
         let hash_key = (
-            new_remittance.ticker.clone(),
+            new_remittance.token.clone(),
             new_remittance.chain.clone(),
-            new_remittance.recipient_address.clone(),
+            new_remittance.account.clone(),
         );
 
         if let Some(existing_data) = remittance_store.get_mut(&hash_key) {

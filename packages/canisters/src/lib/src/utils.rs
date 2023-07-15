@@ -19,9 +19,3 @@ pub fn vec_u8_to_string(vec: &Vec<u8>) -> String {
         .join("")
         .to_string()
 }
-
-pub fn remove_leading(vec: &Vec<u8>, element: u8) -> Vec<u8> {
-    let start = vec.iter().position(|&x| x != element).unwrap();
-    let result = &vec[start..];
-    result.to_vec()
-}
