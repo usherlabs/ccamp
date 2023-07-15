@@ -2,7 +2,7 @@ use candid::Principal;
 use easy_hasher::easy_hasher;
 use ic_cdk_macros::*;
 use lib;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -70,14 +70,37 @@ async fn setup_subscribe(publisher_id: Principal) {
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
 #[update]
-fn update_remittance(new_remittances: Vec<lib::DataModel>) {
+fn update_remittance(new_remittances: Vec<lib::DataModel>) -> Result<(), String> {
     owner::only_publisher();
-    for new_remittance in new_remittances {
-        remittance::update_balance(new_remittance);
+    // TODO derive this value by comparing the caller to a list of registered protocol canisters
+    let is_protocol_dc = false;
+
+    // add checks here to make sure that the input data is error free
+    // if there is any error, return it to the calling dc canister
+    if let Err(text) = remittance::validate_remittance_data(is_protocol_dc, &new_remittances) {
+        // TODO to return error or throw error
+        // return Err(text);
+        panic!("{text}");
     }
+
+    // process each 'MESSAGE' sent to the DC canister based on
+    // the request type and if the canister calling the method is a request canister
+    for new_remittance in new_remittances {
+        // leave it named as underscore until we have implemented a use for the response
+        let _ = match (is_protocol_dc, new_remittance.action.clone()) {
+            (_, lib::Action::Adjust) => {
+                remittance::update_balance(new_remittance);
+                Ok(())
+            }
+            // ignore every other condition we have not created yet
+            _ => Err("INVALID_ACTION"),
+        };
+    }
+
+    Ok(())
 }
 
-// use this to get the signature, nonce and amount to get some remittance for the input params
+// this function is called by the user to get their signature which they can use to claim funds from the network
 #[update]
 async fn remit(
     token: String,
@@ -116,10 +139,15 @@ async fn remit(
         };
     } else {
         let nonce = random::get_random_number();
-        let (bytes_hash, _) =
-            remittance::produce_remittance_hash(nonce, amount, &account.to_string(), &chain.to_string());
+        let (bytes_hash, _) = remittance::produce_remittance_hash(
+            nonce,
+            amount,
+            &account.to_string(),
+            &chain.to_string(),
+        );
         let balance =
-            get_available_balance(token.to_string(), chain.to_string(), account.to_string()).balance;
+            get_available_balance(token.to_string(), chain.to_string(), account.to_string())
+                .balance;
 
         // make sure this user actually has enough funds to withdraw
         assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
@@ -170,33 +198,27 @@ async fn remit(
     response
 }
 
+// use this function to get the un remitted balance of the 'account' provided
+// i.e the portion of their balance which has not been claimed or is in the process of being claimed
 #[query]
 fn get_available_balance(token: String, chain: String, account: String) -> remittance::Account {
-    let chain: lib::Chain= chain.try_into().unwrap();
+    let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
     // validate the address and the chain
 
     // get available balance for this key
-    let amount = REMITTANCE.with(|remittance| {
-        let existing_key = (token, chain, account);
-        remittance
-            .borrow()
-            .get(&existing_key)
-            .cloned()
-            .unwrap_or_default()
-    });
+    let amount = remittance::get_available_balance(token, chain, account);
 
     amount
 }
 
+// the users use this function to get the witheld balance
+// i.e the balance which has been deducted from the main balance
+// because it can be potentially claimed from the smart contract
 #[query]
-fn get_witheld_balance(
-    token: String,
-    chain: String,
-    account: String,
-) -> remittance::Account {
-    let chain: lib::Chain= chain.try_into().unwrap();
+fn get_witheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+    let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
@@ -217,22 +239,15 @@ fn get_witheld_balance(
 }
 
 #[update]
-fn clear_witheld_balance(
-    token: String,
-    chain: String,
-    account: String,
-) -> remittance::Account {
-    let chain: lib::Chain= chain.try_into().unwrap();
+fn clear_witheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+    let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
     let hash_key = (token.clone(), chain.clone(), account.clone());
 
-    let redeemed_balance = get_witheld_balance(
-        token.to_string(),
-        chain.to_string(),
-        account.to_string(),
-    );
+    let redeemed_balance =
+        get_witheld_balance(token.to_string(), chain.to_string(), account.to_string());
     // if this user has some pending withdrawals for these parameters
     if redeemed_balance.balance > 0 {
         // then for each amount delete the entry/cache from the witheld balance

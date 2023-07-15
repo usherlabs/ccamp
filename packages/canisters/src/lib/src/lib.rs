@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use candid::{CandidType, Principal};
 use serde::Deserialize;
 use std::{collections::BTreeMap, fmt::Display};

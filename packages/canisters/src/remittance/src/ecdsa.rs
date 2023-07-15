@@ -1,4 +1,4 @@
-#![warn(dead_code)]
+#![allow(dead_code)]
 
 use crate::{ecdsa, ethereum, remittance, utils};
 use ic_cdk::export::{
