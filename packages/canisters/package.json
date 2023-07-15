@@ -24,6 +24,7 @@
 		"setup": "sh -ci \"$(curl -fsSL https://internetcomputer.org/install.sh)\"",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "dfx generate",
+		"clean": "del ./build ./target",
 		"deploy:local": "sh ./deploy.sh",
 		"compile:force": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline"
 	},
@@ -39,5 +40,8 @@
 		"mmmagic": "^0.5.3",
 		"prettier": "^2.8.8",
 		"sha256-file": "^1.0.0"
+	},
+	"devDependencies": {
+		"del-cli": "^5.0.0"
 	}
 }
