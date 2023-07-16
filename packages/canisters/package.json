@@ -21,11 +21,11 @@
 	],
 	"type": "module",
 	"scripts": {
-		"setup": "sh -ci \"$(curl -fsSL https://internetcomputer.org/install.sh)\"",
+		"setup": "sh ./scripts/setup.sh",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "dfx generate",
 		"clean": "del ./build ./target",
-		"deploy:local": "sh ./deploy.sh",
+		"deploy:local": "sh ./scripts/deploy.sh",
 		"compile:force": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline"
 	},
 	"dependencies": {
