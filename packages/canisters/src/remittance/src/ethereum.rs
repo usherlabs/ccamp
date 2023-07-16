@@ -1,35 +1,56 @@
-use crate::{utils, ethereum, ecdsa::{self, derive_pk}};
+use crate::{
+    ecdsa::{self, derive_pk},
+    ethereum,
+    utils::{self, string_to_vec_u8},
+};
 use candid::Principal;
 use easy_hasher::easy_hasher;
 
-// this is the bytes equivalent of "\x19Ethereum Signed Message:\n32";
-// which is used to prefix signed messages in ethereum
-pub const SIGNATURE_HASH_PREFIX: [u8; 28] = [
-    0x19, 0x45, 0x74, 0x68, 0x65, 0x72, 0x65, 0x75, 0x6d, 0x20, 0x53, 0x69, 0x67, 0x6e, 0x65, 0x64,
-    0x20, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x3a, 0x0a, 0x33, 0x32,
-];
+pub fn hash_eth_message<T: AsRef<[u8]>>(message: T) -> Vec<u8> {
+    const PREFIX: &str = "\x19Ethereum Signed Message:\n";
 
-// use this function to double has a message
-// so it can be verified on the ethereum network
-pub fn hash_eth_message(message: &Vec<u8>) -> Vec<u8> {
-    let message_hash = easy_hasher::raw_keccak256(message.clone()).to_vec();
-    let eth_prefixed_hash =
-        easy_hasher::raw_keccak256(concatenate_vectors(&[&SIGNATURE_HASH_PREFIX, &message_hash]))
-            .to_vec();
+    let message = message.as_ref();
+    let len = message.len();
+    let len_string = len.to_string();
 
-    return eth_prefixed_hash;
+    let mut eth_message = Vec::with_capacity(PREFIX.len() + len_string.len() + len);
+    eth_message.extend_from_slice(PREFIX.as_bytes());
+    eth_message.extend_from_slice(len_string.as_bytes());
+    eth_message.extend_from_slice(message);
+
+    easy_hasher::raw_keccak256(eth_message)
+        .to_vec()
+        .try_into()
+        .unwrap()
 }
 
-// the equivalent of the abi.encodepacked function
-pub fn concatenate_vectors(values: &[&[u8]]) -> Vec<u8> {
-    let total_length: usize = values.iter().map(|v| v.len()).sum();
-    let mut result = Vec::with_capacity(total_length);
 
-    for value in values {
-        result.extend_from_slice(value);
+pub fn recover_address_from_eth_signature(
+    metamask_signature: String,
+    message: String,
+) -> Result<String, String> {
+    let metamask_signature = string_to_vec_u8(&metamask_signature);
+    if metamask_signature.len() != 65 {
+        return Err("INVALID_ETH_SIGNATURE".to_string());
     }
 
-    result
+    let signature_bytes: [u8; 64] = metamask_signature[0..64].try_into().unwrap();
+    let signature_bytes_64 = libsecp256k1::Signature::parse_standard(&signature_bytes).unwrap();
+
+    let recovery_id = metamask_signature[64];
+    let recovery_id_byte = libsecp256k1::RecoveryId::parse_rpc(recovery_id).unwrap();
+
+    let message_bytes: [u8; 32] = hash_eth_message(message)
+        .try_into()
+        .unwrap();
+    let message_bytes_32 = libsecp256k1::Message::parse(&message_bytes);
+
+    let public_key =
+        libsecp256k1::recover(&message_bytes_32, &signature_bytes_64, &recovery_id_byte).unwrap();
+
+    let address = get_address_from_public_key(public_key.serialize_compressed().to_vec()).unwrap();
+
+    Ok(address)
 }
 
 // append an extra discriminator byte to the ecdsa signature
@@ -103,7 +124,6 @@ pub fn get_address_from_public_key(public_key: Vec<u8>) -> Result<String, String
 
     Ok(address)
 }
-
 
 pub async fn sign_message(message: &Vec<u8>) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed

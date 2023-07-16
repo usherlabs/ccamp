@@ -107,9 +107,21 @@ async fn remit(
     chain: String,
     account: String,
     amount: u64,
+    proof: String,
 ) -> remittance::RemittanceReply {
+    // make sure the 'proof' is a signature of the amount by the provided address
+    let derived_address =
+        ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
+            .expect("INVALID_SIGNATURE");
+
+    // make sure the signature belongs to the provided account
+    assert!(
+        derived_address == account.to_lowercase(),
+        "INVALID_SIGNATURE"
+    );
     // make sure the amount being remitted is none zero
     assert!(amount > 0, "AMOUNT < 0");
+
     // generate key values
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
@@ -124,7 +136,7 @@ async fn remit(
     let response: remittance::RemittanceReply;
     // if the amount exists in a witheld map then return the cached signature and nonce
     if witheld_balance.balance == amount {
-        let (bytes_hash, _) = remittance::produce_remittance_hash(
+        let message_hash = remittance::hash_remittance_parameters(
             witheld_balance.nonce,
             amount,
             &account.to_string(),
@@ -132,14 +144,14 @@ async fn remit(
         );
 
         response = remittance::RemittanceReply {
-            hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
+            hash: vec_u8_to_string(&message_hash),
             signature: witheld_balance.signature.clone(),
             nonce: witheld_balance.nonce,
             amount,
         };
     } else {
         let nonce = random::get_random_number();
-        let (bytes_hash, _) = remittance::produce_remittance_hash(
+        let message_hash = remittance::hash_remittance_parameters(
             nonce,
             amount,
             &account.to_string(),
@@ -153,7 +165,7 @@ async fn remit(
         assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
 
         // generate a signature for these parameters
-        let signature_reply = ethereum::sign_message(&bytes_hash)
+        let signature_reply = ethereum::sign_message(&message_hash)
             .await
             .expect("ERROR_SIGNING_MESSAGE");
         let signature_string = format!("0x{}", signature_reply.signature_hex);
@@ -188,7 +200,7 @@ async fn remit(
         });
         // create response object
         response = remittance::RemittanceReply {
-            hash: vec_u8_to_string(&easy_hasher::raw_keccak256(bytes_hash).to_vec()),
+            hash: vec_u8_to_string(&message_hash),
             signature: signature_string.clone(),
             nonce,
             amount,

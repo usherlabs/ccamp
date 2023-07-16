@@ -7,6 +7,7 @@
 #![allow(dead_code)]
 use crate::{owner, utils};
 use candid::{CandidType, Error};
+use easy_hasher::easy_hasher;
 use eth_encode_packed::{
     ethabi::{ethereum_types::U256, Address},
     SolidityDataType,
@@ -59,12 +60,12 @@ pub type WitheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u6
 pub type WitheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
-pub fn produce_remittance_hash(
+pub fn hash_remittance_parameters(
     nonce: u64,
     amount: u64,
     address: &str,
     chain_id: &str,
-) -> (Vec<u8>, String) {
+) -> Vec<u8> {
     // convert the address to bytes format
     let address: [u8; 20] = utils::string_to_vec_u8(address).try_into().unwrap();
     // pack the encoded bytes
@@ -76,7 +77,7 @@ pub fn produce_remittance_hash(
     ];
     let (_bytes, hash) = eth_encode_packed::abi::encode_packed(&input);
 
-    (_bytes, hash)
+    easy_hasher::raw_keccak256(_bytes.clone()).to_vec()
 }
 
 // given some details, which are the parameters of the function
@@ -159,37 +160,36 @@ pub fn validate_remittance_data(
 
 // validate data for an ordinary dc canister
 pub fn validate_dc_remitance_data(new_remittances: &Vec<lib::DataModel>) -> Result<(), String> {
-    // validate that all operations are adjust and the resultant of amounts is zero
-    let amount_delta = new_remittances
-        .iter()
-        .fold(0, |acc, account| acc + account.amount);
+    // // validate that all operations are adjust and the resultant of amounts is zero
+    // let amount_delta = new_remittances
+    //     .iter()
+    //     .fold(0, |acc, account| acc + account.amount);
 
-    if amount_delta != 0 {
-        return Err("SUM_AMOUNT != 0".to_string());
-    }
+    // if amount_delta != 0 {
+    //     return Err("SUM_AMOUNT != 0".to_string());
+    // }
 
-    // validate it is only adjust action provided
-    let is_action_valid = new_remittances
-        .iter()
-        .all(|item| item.action == lib::Action::Adjust);
+    // // validate it is only adjust action provided
+    // let is_action_valid = new_remittances
+    //     .iter()
+    //     .all(|item| item.action == lib::Action::Adjust);
 
-    if !is_action_valid {
-        return Err("INVALID_ACTION_FOUND".to_string());
-    }
+    // if !is_action_valid {
+    //     return Err("INVALID_ACTION_FOUND".to_string());
+    // }
 
     // check for all the negative deductions and confirm that the owners have at least that much balance
     let mut sufficient_balance_error: Result<(), String> = Ok(());
-    new_remittances
-        .iter()
-        .filter(|item| item.amount < 0)
-        .for_each(|item| {
-            let existing_balance =
-                get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone());
-            if existing_balance.balance < item.amount.abs() as u64 {
-                sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
-            };
-        });
+    // new_remittances
+    //     .iter()
+    //     .filter(|item| item.amount < 0)
+    //     .for_each(|item| {
+    //         let existing_balance =
+    //             get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone());
+    //         if existing_balance.balance < item.amount.abs() as u64 {
+    //             sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
+    //         };
+    //     });
 
-    
     sufficient_balance_error
 }

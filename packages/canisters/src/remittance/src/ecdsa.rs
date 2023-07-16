@@ -85,25 +85,26 @@ impl EcdsaKeyIds {
     }
 }
 
-pub async fn verify(
-    signature_hex: String,
-    message: String,
-    sec1_pk: String,
-) -> Result<ecdsa::SignatureVerificationReply, String> {
-    let signature_bytes = hex::decode(&signature_hex).expect("FAILED_TO_HEXDECODE_SIGNATURE");
-    let pubkey_bytes = hex::decode(&sec1_pk).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
-    let message_bytes = ethereum::hash_eth_message(&message.into_bytes());
+// TODO delete eventually since deprecated
+// pub async fn verify(
+//     signature_hex: String,
+//     message: String,
+//     sec1_pk: String,
+// ) -> Result<ecdsa::SignatureVerificationReply, String> {
+//     let signature_bytes = hex::decode(&signature_hex).expect("FAILED_TO_HEXDECODE_SIGNATURE");
+//     let pubkey_bytes = hex::decode(&sec1_pk).expect("FAILED_TO_HEXDECODE_PUBLIC_KEY");
+//     let message_bytes = ethereum::hash_eth_message(&message.into_bytes());
 
-    use k256::ecdsa::signature::Verifier;
-    let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
-        .expect("DESERIALIZE_SIGNATURE_FAILED");
-    let is_signature_valid = k256::ecdsa::VerifyingKey::from_sec1_bytes(&pubkey_bytes)
-        .expect("DESERIALIZE_SEC1_ENCODING_FAILED")
-        .verify(&message_bytes, &signature)
-        .is_ok();
+//     use k256::ecdsa::signature::Verifier;
+//     let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
+//         .expect("DESERIALIZE_SIGNATURE_FAILED");
+//     let is_signature_valid = k256::ecdsa::VerifyingKey::from_sec1_bytes(&pubkey_bytes)
+//         .expect("DESERIALIZE_SEC1_ENCODING_FAILED")
+//         .verify(&message_bytes, &signature)
+//         .is_ok();
 
-    Ok(ecdsa::SignatureVerificationReply { is_signature_valid })
-}
+//     Ok(ecdsa::SignatureVerificationReply { is_signature_valid })
+// }
 
 pub async fn derive_pk() -> Vec<u8> {
     let request = ecdsa::ECDSAPublicKey {
@@ -125,32 +126,33 @@ pub async fn derive_pk() -> Vec<u8> {
     res.public_key
 }
 
-pub async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
-    // hash the message to be signed
-    let message_hash = ethereum::hash_eth_message(&message.into_bytes());
+// TODO delete eventually since deprecated
+// pub async fn sign(message: String) -> Result<ecdsa::SignatureReply, String> {
+//     // hash the message to be signed
+//     let message_hash = ethereum::hash_eth_message(&message.into_bytes());
 
-    // sign the message
-    let public_key = derive_pk().await;
-    let request = ecdsa::SignWithECDSA {
-        message_hash: message_hash.clone(),
-        derivation_path: vec![],
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
-    };
+//     // sign the message
+//     let public_key = derive_pk().await;
+//     let request = ecdsa::SignWithECDSA {
+//         message_hash: message_hash.clone(),
+//         derivation_path: vec![],
+//         key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+//     };
 
-    let (response,): (ecdsa::SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
-        Principal::management_canister(),
-        "sign_with_ecdsa",
-        (request,),
-        remittance::MAX_CYCLE,
-    )
-    .await
-    .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
+//     let (response,): (ecdsa::SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
+//         Principal::management_canister(),
+//         "sign_with_ecdsa",
+//         (request,),
+//         remittance::MAX_CYCLE,
+//     )
+//     .await
+//     .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;
 
-    let full_signature = ethereum::get_signature(&response.signature, &message_hash, &public_key);
-    Ok(ecdsa::SignatureReply {
-        signature_hex: utils::vec_u8_to_string(&full_signature),
-    })
-}
+//     let full_signature = ethereum::get_signature(&response.signature, &message_hash, &public_key);
+//     Ok(ecdsa::SignatureReply {
+//         signature_hex: utils::vec_u8_to_string(&full_signature),
+//     })
+// }
 // In the following, we register a custom getrandom implementation because
 // otherwise getrandom (which is a dependency of k256) fails to compile.
 // This is necessary because getrandom by default fails to compile for the

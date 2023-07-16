@@ -46,7 +46,7 @@ async fn publish() {
             .unwrap(),
         chain: lib::Chain::Ethereum1,
         amount: 1000000,
-        account: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        account: "0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432"
             .to_string()
             .try_into()
             .unwrap(),
@@ -60,7 +60,7 @@ async fn publish() {
             .unwrap(),
         chain: lib::Chain::Ethereum1,
         amount: -500000,
-        account: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        account: "0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432"
             .to_string()
             .try_into()
             .unwrap(),
