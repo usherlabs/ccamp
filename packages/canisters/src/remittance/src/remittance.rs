@@ -1,7 +1,13 @@
 // define all major types and their implementation here
-#![warn(dead_code)]
+
+// TODO VALIDATE incoming remittance requests
+// ----- Make sure everyone has valid balances for deductions i.e negative adjustments
+// ----- Make sure the net, adjustment is zero i.e make sure no balance is created nor destroyed,
+// ----- Only moved from one place to the other
+#![allow(dead_code)]
 use crate::{owner, utils};
-use candid::CandidType;
+use candid::{CandidType, Error};
+use easy_hasher::easy_hasher;
 use eth_encode_packed::{
     ethabi::{ethereum_types::U256, Address},
     SolidityDataType,
@@ -49,17 +55,17 @@ pub struct RemittanceReply {
     pub amount: u64,
 }
 
-pub type AvailableBalanceStore = HashMap<(String, lib::Chain, String), Account>;
-pub type WitheldBalanceStore = HashMap<(String, lib::Chain, String, u64), WitheldAccount>;
-pub type WitheldAmountsStore = HashMap<(String, lib::Chain, String), Vec<u64>>;
+pub type AvailableBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Account>;
+pub type WitheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u64), WitheldAccount>;
+pub type WitheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
-pub fn produce_remittance_hash(
+pub fn hash_remittance_parameters(
     nonce: u64,
     amount: u64,
     address: &str,
     chain_id: &str,
-) -> (Vec<u8>, String) {
+) -> Vec<u8> {
     // convert the address to bytes format
     let address: [u8; 20] = utils::string_to_vec_u8(address).try_into().unwrap();
     // pack the encoded bytes
@@ -71,25 +77,20 @@ pub fn produce_remittance_hash(
     ];
     let (_bytes, hash) = eth_encode_packed::abi::encode_packed(&input);
 
-    (_bytes, hash)
+    easy_hasher::raw_keccak256(_bytes.clone()).to_vec()
 }
 
+// given some details, which are the parameters of the function
+// we want to get the balance signature generated when a remit request created by this account
+// it would return a balance of 0 and no signature if a user has not made a remit request for the specified "amount"
 pub fn get_remitted_balance(
-    ticker: String,
-    chain_name: String,
-    chain_id: String,
-    recipient_address: String,
+    token: lib::Wallet,
+    chain: lib::Chain,
+    account: lib::Wallet,
     amount: u64,
 ) -> WitheldAccount {
-    // validate the address and the chain
-    if recipient_address.len() != 42 {
-        panic!("INVALID_ADDRESS")
-    };
-    let chain = lib::Chain::from_chain_details(&chain_name, &chain_id).expect("INVALID_CHAIN");
-    // validate the address and the chain
-
     let witheld_amount = crate::WITHELD_REMITTANCE.with(|witheld| {
-        let existing_key = (ticker, chain, recipient_address.clone(), amount);
+        let existing_key = (token, chain, account.clone(), amount);
         witheld
             .borrow()
             .get(&existing_key)
@@ -98,6 +99,24 @@ pub fn get_remitted_balance(
     });
 
     witheld_amount
+}
+
+// get the total unspent available-to-use balance for the user
+pub fn get_available_balance(
+    token: lib::Wallet,
+    chain: lib::Chain,
+    account: lib::Wallet,
+) -> Account {
+    let available_amount = crate::REMITTANCE.with(|remittance| {
+        let existing_key = (token, chain, account);
+        remittance
+            .borrow()
+            .get(&existing_key)
+            .cloned()
+            .unwrap_or_default()
+    });
+
+    available_amount
 }
 
 // it essentially uses the mapping (ticker, chain, recipientaddress) => {DataModel}
@@ -109,9 +128,9 @@ pub fn update_balance(new_remittance: lib::DataModel) {
         let mut remittance_store = remittance.borrow_mut();
 
         let hash_key = (
-            new_remittance.ticker.clone(),
+            new_remittance.token.clone(),
             new_remittance.chain.clone(),
-            new_remittance.recipient_address.clone(),
+            new_remittance.account.clone(),
         );
 
         if let Some(existing_data) = remittance_store.get_mut(&hash_key) {
@@ -126,4 +145,51 @@ pub fn update_balance(new_remittance: lib::DataModel) {
             );
         }
     });
+}
+
+// use the right validator depending on if the caller is a pdc or not
+pub fn validate_remittance_data(
+    is_pdc: bool,
+    new_remittances: &Vec<lib::DataModel>,
+) -> Result<(), String> {
+    match is_pdc {
+        true => Ok(()),
+        false => validate_dc_remitance_data(new_remittances),
+    }
+}
+
+// validate data for an ordinary dc canister
+pub fn validate_dc_remitance_data(new_remittances: &Vec<lib::DataModel>) -> Result<(), String> {
+    // // validate that all operations are adjust and the resultant of amounts is zero
+    // let amount_delta = new_remittances
+    //     .iter()
+    //     .fold(0, |acc, account| acc + account.amount);
+
+    // if amount_delta != 0 {
+    //     return Err("SUM_AMOUNT != 0".to_string());
+    // }
+
+    // // validate it is only adjust action provided
+    // let is_action_valid = new_remittances
+    //     .iter()
+    //     .all(|item| item.action == lib::Action::Adjust);
+
+    // if !is_action_valid {
+    //     return Err("INVALID_ACTION_FOUND".to_string());
+    // }
+
+    // check for all the negative deductions and confirm that the owners have at least that much balance
+    let mut sufficient_balance_error: Result<(), String> = Ok(());
+    // new_remittances
+    //     .iter()
+    //     .filter(|item| item.amount < 0)
+    //     .for_each(|item| {
+    //         let existing_balance =
+    //             get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone());
+    //         if existing_balance.balance < item.amount.abs() as u64 {
+    //             sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
+    //         };
+    //     });
+
+    sufficient_balance_error
 }

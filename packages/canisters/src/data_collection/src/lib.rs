@@ -40,17 +40,31 @@ async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
     let sample_increase = lib::DataModel {
-        ticker: "USDC".to_string(),
-        recipient_address: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4".to_string(),
+        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+            .to_string()
+            .try_into()
+            .unwrap(),
         chain: lib::Chain::Ethereum1,
         amount: 1000000,
+        account: "0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432"
+            .to_string()
+            .try_into()
+            .unwrap(),
+        action: lib::Action::Adjust,
     };
 
     let sample_decrease = lib::DataModel {
-        ticker: "USDC".to_string(),
-        recipient_address: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4".to_string(),
+        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+            .to_string()
+            .try_into()
+            .unwrap(),
         chain: lib::Chain::Ethereum1,
         amount: -500000,
+        account: "0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432"
+            .to_string()
+            .try_into()
+            .unwrap(),
+        action: lib::Action::Adjust,
     };
 
     let bulk_update = vec![sample_increase, sample_decrease];

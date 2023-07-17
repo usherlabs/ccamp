@@ -22,9 +22,9 @@ service : {
 	"owner" : () -> (text) query;
 	"name" : () -> (text) query;
 	"setup_subscribe" : (publisher_id : principal) -> ();
-	"remit" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text, amount : nat64) -> (RemittanceReply);
-	"get_available_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
-	"get_witheld_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
-	"clear_witheld_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account);
+	"remit" : (ticker : text, chain: text, recipient_address : text, amount : nat64, proof: text) -> (RemittanceReply);
+	"get_available_balance" : (token : text, chain: text, account : text) -> (Account) query;
+	"get_witheld_balance" : (ticker : text, chain: text, recipient_address : text) -> (Account) query;
+	"clear_witheld_balance" : (ticker : text, chain: text, recipient_address : text) -> (Account);
 	"public_key" : () -> (variant { Ok : record { sec1_pk : text; etherum_pk : text }; Err : text });
 };
