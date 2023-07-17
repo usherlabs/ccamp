@@ -64,11 +64,11 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 <!--  -->
 
 <!-- commands -->
+
 delete all canisters -> dfx canister delete --all -y
-get public key -> dfx canister call remittance public_key 
+get public key -> dfx canister call remittance public_key
 subscribe remittance canister to data collection pubsub -> dfx canister call remittance setup_subscribe '(principal "c2lt4-zmaaa-aaaaa-qaaiq-cai")'
 publish new data from data canister to remittance canister -> dfx canister call data_collection publish
 query remittance canister balance to make sure it gets the data -> dfx canister call remittance get_available_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432")'
-query remittance canister witheld balance to make sure it gets the data -> dfx canister call remittance get_witheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432")'
+query remittance canister withheld balance to make sure it gets the data -> dfx canister call remittance get_withheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432")'
 get signature of remittance ->dfx canister call remittance remit '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1d4dbfbc9f8cb77709493cc43eaa3cd505432",400000,"0x243387ec0d34bc2d003aa12f5a23df356d5329d0e6666e1ba75d8110a8184c695df30da787a3b54c0e2b23599ca5f7d9f4d6025f3e7bf5008743899aacfe94921c")'
-

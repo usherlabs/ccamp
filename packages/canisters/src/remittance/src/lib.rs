@@ -17,8 +17,8 @@ mod utils;
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
-    static WITHELD_REMITTANCE: RefCell<remittance::WitheldBalanceStore> = RefCell::default();
-    static WITHELD_AMOUNTS: RefCell<remittance::WitheldAmountsStore> = RefCell::default();
+    static WITHHELD_REMITTANCE: RefCell<remittance::WithheldBalanceStore> = RefCell::default();
+    static WITHHELD_AMOUNTS: RefCell<remittance::WithheldAmountsStore> = RefCell::default();
     static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
 }
 
@@ -129,15 +129,15 @@ async fn remit(
 
     let hash_key = (token.clone(), chain.clone(), account.clone());
 
-    // check if there is a witheld 'balance' for this particular amount
-    let witheld_balance =
+    // check if there is a withheld 'balance' for this particular amount
+    let withheld_balance =
         remittance::get_remitted_balance(token.clone(), chain.clone(), account.clone(), amount);
 
     let response: remittance::RemittanceReply;
-    // if the amount exists in a witheld map then return the cached signature and nonce
-    if witheld_balance.balance == amount {
+    // if the amount exists in a withheld map then return the cached signature and nonce
+    if withheld_balance.balance == amount {
         let message_hash = remittance::hash_remittance_parameters(
-            witheld_balance.nonce,
+            withheld_balance.nonce,
             amount,
             &account.to_string(),
             &chain.to_string(),
@@ -145,8 +145,8 @@ async fn remit(
 
         response = remittance::RemittanceReply {
             hash: vec_u8_to_string(&message_hash),
-            signature: witheld_balance.signature.clone(),
-            nonce: witheld_balance.nonce,
+            signature: withheld_balance.signature.clone(),
+            nonce: withheld_balance.nonce,
             amount,
         };
     } else {
@@ -178,20 +178,20 @@ async fn remit(
         });
         // add amount to mapping (token, chain, recipient) => [amount_1, amount_2, amount_3]
         // to keep track of individual amounts remitted per (token, chain, recipient) combination
-        WITHELD_AMOUNTS.with(|witheld_amount| {
+        WITHHELD_AMOUNTS.with(|withheld_amount| {
             // Append value to existing entry or create new entry
-            witheld_amount
+            withheld_amount
                 .borrow_mut()
                 .entry(hash_key.clone())
                 .or_insert(Vec::new())
                 .push(amount);
         });
-        // update the witheld balance of the said user and generate a new signature for it
-        WITHELD_REMITTANCE.with(|witheld| {
-            let mut witheld_remittance_store = witheld.borrow_mut();
-            witheld_remittance_store.insert(
+        // update the withheld balance of the said user and generate a new signature for it
+        WITHHELD_REMITTANCE.with(|withheld| {
+            let mut withheld_remittance_store = withheld.borrow_mut();
+            withheld_remittance_store.insert(
                 (token.clone(), chain.clone(), account.clone(), amount),
-                remittance::WitheldAccount {
+                remittance::WithheldAccount {
                     balance: amount,
                     signature: signature_string.clone(),
                     nonce,
@@ -225,21 +225,21 @@ fn get_available_balance(token: String, chain: String, account: String) -> remit
     amount
 }
 
-// the users use this function to get the witheld balance
+// the users use this function to get the withheld balance
 // i.e the balance which has been deducted from the main balance
 // because it can be potentially claimed from the smart contract
 #[query]
-fn get_witheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+fn get_withheld_balance(token: String, chain: String, account: String) -> remittance::Account {
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
     let existing_key = (token.clone(), chain.clone(), account.clone());
 
-    // sum up all the amounts in the witheld_amount value of this key
-    let sum = WITHELD_AMOUNTS.with(|witheld_amount| {
-        let witheld_amount = witheld_amount.borrow();
-        let values = witheld_amount.get(&existing_key);
+    // sum up all the amounts in the withheld_amount value of this key
+    let sum = WITHHELD_AMOUNTS.with(|withheld_amount| {
+        let withheld_amount = withheld_amount.borrow();
+        let values = withheld_amount.get(&existing_key);
 
         match values {
             Some(vec) => vec.iter().sum::<u64>(),
@@ -251,7 +251,7 @@ fn get_witheld_balance(token: String, chain: String, account: String) -> remitta
 }
 
 #[update]
-fn clear_witheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+fn clear_withheld_balance(token: String, chain: String, account: String) -> remittance::Account {
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
@@ -259,19 +259,19 @@ fn clear_witheld_balance(token: String, chain: String, account: String) -> remit
     let hash_key = (token.clone(), chain.clone(), account.clone());
 
     let redeemed_balance =
-        get_witheld_balance(token.to_string(), chain.to_string(), account.to_string());
+        get_withheld_balance(token.to_string(), chain.to_string(), account.to_string());
     // if this user has some pending withdrawals for these parameters
     if redeemed_balance.balance > 0 {
-        // then for each amount delete the entry/cache from the witheld balance
-        WITHELD_AMOUNTS.with(|witheld_amount| {
-            let mut mut_witheld_amount = witheld_amount.borrow_mut();
-            mut_witheld_amount
+        // then for each amount delete the entry/cache from the withheld balance
+        WITHHELD_AMOUNTS.with(|withheld_amount| {
+            let mut mut_withheld_amount = withheld_amount.borrow_mut();
+            mut_withheld_amount
                 .get(&hash_key)
                 .unwrap()
                 .iter()
                 .for_each(|amount| {
-                    WITHELD_REMITTANCE.with(|witheld_remittance| {
-                        witheld_remittance.borrow_mut().remove(&(
+                    WITHHELD_REMITTANCE.with(|withheld_remittance| {
+                        withheld_remittance.borrow_mut().remove(&(
                             token.clone(),
                             chain.clone(),
                             account.clone(),
@@ -279,9 +279,9 @@ fn clear_witheld_balance(token: String, chain: String, account: String) -> remit
                         ));
                     })
                 });
-            mut_witheld_amount.remove(&hash_key);
+            mut_withheld_amount.remove(&hash_key);
         });
-        // add the witheld total back to the available balance
+        // add the withheld total back to the available balance
         REMITTANCE.with(|remittance| {
             if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
                 existing_data.balance = existing_data.balance + redeemed_balance.balance;

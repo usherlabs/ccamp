@@ -32,12 +32,12 @@ impl Default for Account {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct WitheldAccount {
+pub struct WithheldAccount {
     pub balance: u64,
     pub signature: String,
     pub nonce: u64,
 }
-impl Default for WitheldAccount {
+impl Default for WithheldAccount {
     fn default() -> Self {
         return Self {
             balance: 0,
@@ -56,8 +56,8 @@ pub struct RemittanceReply {
 }
 
 pub type AvailableBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Account>;
-pub type WitheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u64), WitheldAccount>;
-pub type WitheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
+pub type WithheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u64), WithheldAccount>;
+pub type WithheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn hash_remittance_parameters(
@@ -88,17 +88,17 @@ pub fn get_remitted_balance(
     chain: lib::Chain,
     account: lib::Wallet,
     amount: u64,
-) -> WitheldAccount {
-    let witheld_amount = crate::WITHELD_REMITTANCE.with(|witheld| {
+) -> WithheldAccount {
+    let withheld_amount = crate::WITHHELD_REMITTANCE.with(|withheld| {
         let existing_key = (token, chain, account.clone(), amount);
-        witheld
+        withheld
             .borrow()
             .get(&existing_key)
             .cloned()
             .unwrap_or_default()
     });
 
-    witheld_amount
+    withheld_amount
 }
 
 // get the total unspent available-to-use balance for the user
