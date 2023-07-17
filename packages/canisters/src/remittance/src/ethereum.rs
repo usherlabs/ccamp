@@ -1,4 +1,4 @@
-use crate::{utils, ethereum, ecdsa, derive_pk};
+use crate::{utils, ethereum, ecdsa::{self, derive_pk}};
 use candid::Principal;
 use easy_hasher::easy_hasher;
 

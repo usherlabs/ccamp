@@ -1,15 +1,16 @@
 import {
 	canisterId,
 	createActor,
-	idlFactory,
 } from '@ccamp/canisters/src/declarations/remittance';
-import { Actor, HttpAgent } from '@dfinity/agent';
+import { HttpAgent } from '@dfinity/agent';
 import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
 import fetch from 'isomorphic-fetch';
 import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
-const localCanisterIds = require('@ccamp/canisters/.dfx/local/canister_ids.json');
+const localRequire = createRequire(import.meta.url);
+const localCanisterIds = localRequire(
+	'@ccamp/canisters/.dfx/local/canister_ids.json'
+);
 
 const LOCALHOST = 'http://127.0.0.1:4943';
 
@@ -30,7 +31,7 @@ export async function requestRemittance(
 		canisterId?.toString() ?? localCanisterIds.remittance.local;
 	const agent = new HttpAgent({
 		identity: identity,
-		host: LOCALHOST,
+		host: host,
 		fetch,
 	});
 	const actor = createActor(effectiveCanisterId, {

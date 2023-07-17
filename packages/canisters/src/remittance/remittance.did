@@ -20,11 +20,11 @@ type RemittanceReply = record {
 
 service : {
 	"owner" : () -> (text) query;
-	"request" : () -> (text) query;
+	"name" : () -> (text) query;
 	"setup_subscribe" : (publisher_id : principal) -> ();
-	"get_remittance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (RemittanceReply);
-	"get_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
+	"remit" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text, amount : nat64) -> (RemittanceReply);
+	"get_available_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
+	"get_witheld_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account) query;
+	"clear_witheld_balance" : (ticker : text, chain_name : text, chain_number : text, recipient_address : text) -> (Account);
 	"public_key" : () -> (variant { Ok : record { sec1_pk : text; etherum_pk : text }; Err : text });
-	"sign" : (text) -> (variant { Ok : record { signature_hex : text }; Err : text });
-	"verify" : (text, text, text) -> (variant { Ok : record { is_signature_valid : bool }; Err : text });
 };
