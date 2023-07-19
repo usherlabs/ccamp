@@ -3,16 +3,19 @@ import fs from 'fs';
 import { ethers as hEthers, upgrades } from 'hardhat';
 import path from 'path';
 
+import { chainId } from './constants';
+
 export async function generateHashAndSignature(
 	nonce: number,
 	amount: BigNumberish,
 	recipient: string,
+	chainId: string,
 	signer: Signer
 ) {
 	// generate the has from the amount and hash
 	const encodedData = hEthers.utils.solidityPack(
-		['uint256', 'uint256', 'address'],
-		[nonce, amount, recipient]
+		['uint256', 'uint256', 'address', 'string'],
+		[nonce, amount, recipient, chainId]
 	);
 	const dataHash = hEthers.utils.keccak256(encodedData);
 	// sign the hash recieved
@@ -46,7 +49,7 @@ export async function loadLockerContract(
 
 	const lockerContract = await upgrades.deployProxy(
 		LockerContract,
-		[canisterAddress],
+		[canisterAddress, chainId],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	// deploy contract

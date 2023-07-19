@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { BigNumberish, Contract, ethers, Signer } from 'ethers';
 import { ethers as hEthers } from 'hardhat';
 
-import { ERROR_MESSAGES } from './utils/constants';
+import { chainId, ERROR_MESSAGES } from './utils/constants';
 import {
 	generateHashAndSignature,
 	loadLockerContract,
@@ -63,10 +63,11 @@ describe('Locker', function () {
 			0,
 			amount,
 			recipient,
+			chainId,
 			canisterSigner
 		);
 		// make request
-		await lockerContract.unlockFunds(0, amount, signature);
+		await lockerContract.withdraw(0, amount, signature);
 		// validate the balance of the contract is 0
 		const contractBalance = await lockerContract.getBalance();
 		assert.equal(+contractBalance, 0);
@@ -85,10 +86,11 @@ describe('Locker', function () {
 			0,
 			amount,
 			recipient,
+			chainId,
 			canisterSigner
 		);
 		await expect(
-			lockerContract.unlockFunds(0, ethers.BigNumber.from(10), signature)
+			lockerContract.withdraw(0, ethers.BigNumber.from(10), signature)
 		).to.revertedWith(ERROR_MESSAGES.INVALID_SIGNATURE);
 
 		// Check contract balance remains unchanged
@@ -106,11 +108,12 @@ describe('Locker', function () {
 			0,
 			amount,
 			recipient,
+			chainId,
 			canisterSigner
 		);
-		await expect(
-			lockerContract.unlockFunds(0, amount, signature)
-		).to.revertedWith(ERROR_MESSAGES.INVALID_SIGNATURE);
+		await expect(lockerContract.withdraw(0, amount, signature)).to.revertedWith(
+			ERROR_MESSAGES.INVALID_SIGNATURE
+		);
 
 		// Check contract balance remains unchanged
 		const contractBalance = await lockerContract.getBalance();
@@ -128,10 +131,11 @@ describe('Locker', function () {
 			0,
 			amountToWithdraw,
 			recipient,
+			chainId,
 			canisterSigner
 		);
 		await expect(
-			lockerContract.unlockFunds(0, amountToWithdraw, signature)
+			lockerContract.withdraw(0, amountToWithdraw, signature)
 		).to.be.revertedWith(ERROR_MESSAGES.INVALID_AMOUNT);
 
 		// Check contract balance remains unchanged
@@ -141,22 +145,26 @@ describe('Locker', function () {
 
 	it('should revert when a signature is used multiple times with same nonce', async () => {
 		const nonce = 0;
-		const amount = ethers.utils.parseEther('1.0');
+		const withdrawAmount = ethers.utils.parseEther('1.0');
+		const depositAmount = ethers.utils.parseEther('2.0');
 		const recipient = await adminSigner.getAddress();
 		const userPreBalance = await adminSigner.getBalance();
-		await sendEtherToLocker(amount, allSigners[11]);
+		await sendEtherToLocker(withdrawAmount, allSigners[11]);
+
 
 		// generate request and signature to unlock funds
 		const { signature } = await generateHashAndSignature(
 			0,
-			amount,
+			withdrawAmount,
 			recipient,
+			chainId,
 			canisterSigner
 		);
+
 		// make request
-		await lockerContract.unlockFunds(nonce, amount, signature);
+		await lockerContract.withdraw(nonce, withdrawAmount, signature);
 		await expect(
-			lockerContract.unlockFunds(nonce, amount, signature)
+			lockerContract.withdraw(nonce, withdrawAmount, signature)
 		).to.revertedWith(ERROR_MESSAGES.USED_SIGNATURE);
 	});
 });
