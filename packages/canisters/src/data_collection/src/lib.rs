@@ -1,4 +1,5 @@
 use candid::Principal;
+use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
@@ -72,8 +73,10 @@ async fn publish() {
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
             if v.topic == REMITTANCE_EVENT {
+                // TODO
+                let dc_canister = api::id();
                 let _call_result: Result<(), _> =
-                    ic_cdk::notify(*k, "update_remittance", (&bulk_update,));
+                    ic_cdk::notify(*k, "update_remittance", (&bulk_update, dc_canister));
             }
         }
     });

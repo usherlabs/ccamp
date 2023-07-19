@@ -70,14 +70,17 @@ async fn setup_subscribe(publisher_id: Principal) {
 // this is an external function which is going to be called by  the data collection canister
 // when there is a new data
 #[update]
-fn update_remittance(new_remittances: Vec<lib::DataModel>) -> Result<(), String> {
+fn update_remittance(
+    new_remittances: Vec<lib::DataModel>,
+    dc_canister: Principal,
+) -> Result<(), String> {
     owner::only_publisher();
     // TODO derive this value by comparing the caller to a list of registered protocol canisters
     let is_protocol_dc = false;
 
     // add checks here to make sure that the input data is error free
     // if there is any error, return it to the calling dc canister
-    if let Err(text) = remittance::validate_remittance_data(is_protocol_dc, &new_remittances) {
+    if let Err(text) = remittance::validate_remittance_data(is_protocol_dc, &new_remittances, dc_canister) {
         // TODO to return error or throw error
         // return Err(text);
         panic!("{text}");
@@ -89,7 +92,7 @@ fn update_remittance(new_remittances: Vec<lib::DataModel>) -> Result<(), String>
         // leave it named as underscore until we have implemented a use for the response
         let _ = match (is_protocol_dc, new_remittance.action.clone()) {
             (_, lib::Action::Adjust) => {
-                remittance::update_balance(new_remittance);
+                remittance::update_balance(new_remittance, dc_canister);
                 Ok(())
             }
             // ignore every other condition we have not created yet
@@ -106,13 +109,13 @@ async fn remit(
     token: String,
     chain: String,
     account: String,
+    dc_canister: Principal,
     amount: u64,
     proof: String,
 ) -> remittance::RemittanceReply {
     // make sure the 'proof' is a signature of the amount by the provided address
-    let derived_address =
-        ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
-            .expect("INVALID_SIGNATURE");
+    let derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
+        .expect("INVALID_SIGNATURE");
 
     // make sure the signature belongs to the provided account
     assert!(
@@ -127,11 +130,21 @@ async fn remit(
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
-    let hash_key = (token.clone(), chain.clone(), account.clone());
+    let hash_key = (
+        token.clone(),
+        chain.clone(),
+        account.clone(),
+        dc_canister.clone(),
+    );
 
     // check if there is a withheld 'balance' for this particular amount
-    let withheld_balance =
-        remittance::get_remitted_balance(token.clone(), chain.clone(), account.clone(), amount);
+    let withheld_balance = remittance::get_remitted_balance(
+        token.clone(),
+        chain.clone(),
+        account.clone(),
+        dc_canister.clone(),
+        amount,
+    );
 
     let response: remittance::RemittanceReply;
     // if the amount exists in a withheld map then return the cached signature and nonce
@@ -157,9 +170,13 @@ async fn remit(
             &account.to_string(),
             &chain.to_string(),
         );
-        let balance =
-            get_available_balance(token.to_string(), chain.to_string(), account.to_string())
-                .balance;
+        let balance = get_available_balance(
+            token.to_string(),
+            chain.to_string(),
+            account.to_string(),
+            dc_canister.clone(),
+        )
+        .balance;
 
         // make sure this user actually has enough funds to withdraw
         assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
@@ -190,7 +207,13 @@ async fn remit(
         WITHHELD_REMITTANCE.with(|withheld| {
             let mut withheld_remittance_store = withheld.borrow_mut();
             withheld_remittance_store.insert(
-                (token.clone(), chain.clone(), account.clone(), amount),
+                (
+                    token.clone(),
+                    chain.clone(),
+                    account.clone(),
+                    dc_canister.clone(),
+                    amount,
+                ),
                 remittance::WithheldAccount {
                     balance: amount,
                     signature: signature_string.clone(),
@@ -213,14 +236,19 @@ async fn remit(
 // use this function to get the un remitted balance of the 'account' provided
 // i.e the portion of their balance which has not been claimed or is in the process of being claimed
 #[query]
-fn get_available_balance(token: String, chain: String, account: String) -> remittance::Account {
+fn get_available_balance(
+    token: String,
+    chain: String,
+    account: String,
+    dc_canister: Principal,
+) -> remittance::Account {
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
     // validate the address and the chain
 
     // get available balance for this key
-    let amount = remittance::get_available_balance(token, chain, account);
+    let amount = remittance::get_available_balance(token, chain, account, dc_canister);
 
     amount
 }
@@ -229,12 +257,17 @@ fn get_available_balance(token: String, chain: String, account: String) -> remit
 // i.e the balance which has been deducted from the main balance
 // because it can be potentially claimed from the smart contract
 #[query]
-fn get_withheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+fn get_withheld_balance(
+    token: String,
+    chain: String,
+    account: String,
+    dc_canister: Principal,
+) -> remittance::Account {
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
-    let existing_key = (token.clone(), chain.clone(), account.clone());
+    let existing_key = (token.clone(), chain.clone(), account.clone(), dc_canister);
 
     // sum up all the amounts in the withheld_amount value of this key
     let sum = WITHHELD_AMOUNTS.with(|withheld_amount| {
@@ -251,15 +284,30 @@ fn get_withheld_balance(token: String, chain: String, account: String) -> remitt
 }
 
 #[update]
-fn clear_withheld_balance(token: String, chain: String, account: String) -> remittance::Account {
+fn clear_withheld_balance(
+    token: String,
+    chain: String,
+    account: String,
+    dc_canister: Principal,
+) -> remittance::Account {
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
 
-    let hash_key = (token.clone(), chain.clone(), account.clone());
+    let hash_key = (
+        token.clone(),
+        chain.clone(),
+        account.clone(),
+        dc_canister.clone(),
+    );
 
-    let redeemed_balance =
-        get_withheld_balance(token.to_string(), chain.to_string(), account.to_string());
+    // why not use hash key as the key? why redefine
+    let redeemed_balance = get_withheld_balance(
+        token.to_string(),
+        chain.to_string(),
+        account.to_string(),
+        dc_canister.clone(),
+    );
     // if this user has some pending withdrawals for these parameters
     if redeemed_balance.balance > 0 {
         // then for each amount delete the entry/cache from the withheld balance
@@ -275,6 +323,7 @@ fn clear_withheld_balance(token: String, chain: String, account: String) -> remi
                             token.clone(),
                             chain.clone(),
                             account.clone(),
+                            dc_canister.clone(),
                             *amount,
                         ));
                     })

@@ -6,7 +6,7 @@
 // ----- Only moved from one place to the other
 #![allow(dead_code)]
 use crate::{owner, utils};
-use candid::{CandidType, Error};
+use candid::{CandidType, Principal};
 use easy_hasher::easy_hasher;
 use eth_encode_packed::{
     ethabi::{ethereum_types::U256, Address},
@@ -55,9 +55,12 @@ pub struct RemittanceReply {
     pub amount: u64,
 }
 
-pub type AvailableBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Account>;
-pub type WithheldBalanceStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet, u64), WithheldAccount>;
-pub type WithheldAmountsStore = HashMap<(lib::Wallet, lib::Chain, lib::Wallet), Vec<u64>>;
+pub type AvailableBalanceStore =
+    HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal), Account>;
+pub type WithheldBalanceStore =
+    HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal, u64), WithheldAccount>;
+pub type WithheldAmountsStore =
+    HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal), Vec<u64>>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn hash_remittance_parameters(
@@ -87,10 +90,11 @@ pub fn get_remitted_balance(
     token: lib::Wallet,
     chain: lib::Chain,
     account: lib::Wallet,
+    dc_canister: Principal,
     amount: u64,
 ) -> WithheldAccount {
     let withheld_amount = crate::WITHHELD_REMITTANCE.with(|withheld| {
-        let existing_key = (token, chain, account.clone(), amount);
+        let existing_key = (token, chain, account.clone(), dc_canister, amount);
         withheld
             .borrow()
             .get(&existing_key)
@@ -106,9 +110,10 @@ pub fn get_available_balance(
     token: lib::Wallet,
     chain: lib::Chain,
     account: lib::Wallet,
+    dc_canister: Principal,
 ) -> Account {
     let available_amount = crate::REMITTANCE.with(|remittance| {
-        let existing_key = (token, chain, account);
+        let existing_key = (token, chain, account, dc_canister);
         remittance
             .borrow()
             .get(&existing_key)
@@ -122,7 +127,7 @@ pub fn get_available_balance(
 // it essentially uses the mapping (ticker, chain, recipientaddress) => {DataModel}
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
-pub fn update_balance(new_remittance: lib::DataModel) {
+pub fn update_balance(new_remittance: lib::DataModel, dc_canister: Principal) {
     owner::only_publisher();
     crate::REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
@@ -131,6 +136,7 @@ pub fn update_balance(new_remittance: lib::DataModel) {
             new_remittance.token.clone(),
             new_remittance.chain.clone(),
             new_remittance.account.clone(),
+            dc_canister.clone(),
         );
 
         if let Some(existing_data) = remittance_store.get_mut(&hash_key) {
@@ -151,15 +157,19 @@ pub fn update_balance(new_remittance: lib::DataModel) {
 pub fn validate_remittance_data(
     is_pdc: bool,
     new_remittances: &Vec<lib::DataModel>,
+    dc_canister: Principal,
 ) -> Result<(), String> {
     match is_pdc {
         true => Ok(()),
-        false => validate_dc_remitance_data(new_remittances),
+        false => validate_dc_remitance_data(new_remittances, dc_canister),
     }
 }
 
 // validate data for an ordinary dc canister
-pub fn validate_dc_remitance_data(new_remittances: &Vec<lib::DataModel>) -> Result<(), String> {
+pub fn validate_dc_remitance_data(
+    new_remittances: &Vec<lib::DataModel>,
+    dc_canister: Principal,
+) -> Result<(), String> {
     // // validate that all operations are adjust and the resultant of amounts is zero
     // let amount_delta = new_remittances
     //     .iter()
@@ -185,7 +195,7 @@ pub fn validate_dc_remitance_data(new_remittances: &Vec<lib::DataModel>) -> Resu
     //     .filter(|item| item.amount < 0)
     //     .for_each(|item| {
     //         let existing_balance =
-    //             get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone());
+    //             get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone(), dc_canister.clone());
     //         if existing_balance.balance < item.amount.abs() as u64 {
     //             sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
     //         };
