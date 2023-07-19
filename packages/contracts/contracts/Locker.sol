@@ -10,7 +10,7 @@ import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/
 import {VerifySignature} from "./lib/VerifySignature.sol";
 
 // Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     bool initialized;
@@ -21,7 +21,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
 
     event FundsDeposited(address indexed sender, uint amount, string canisterId);
     event FundsWithdrawn(address indexed account, address indexed recipient, uint amount);
-    event WithdrawCanceled(address indexed account, uint amount, bytes32 signatureHash);
+    event WithdrawCanceled(address indexed account, uint amount, bytes signatureHash);
 
     function initialize(address _remittanceCanister, string calldata _chainId) public initializer {
         __Ownable_init();
@@ -33,13 +33,13 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         initialized = true;
     }
 
-    // make this function compatible with erc20
-    function depositFunds(string calldata _canisterId) public payable {
+    //TODO make this function compatible with erc20
+    function depositFunds(string calldata _canisterId) payable public {
         require(bytes(_canisterId).length == 27, "INVALID_CANISTERID");
         require(msg.value > 0, "MSG.VALUE == 0");
 
         canisters[keccak256(bytes(_canisterId))] += msg.value;
-
+    
         emit FundsDeposited(msg.sender, msg.value, _canisterId);
     }
 
@@ -51,44 +51,38 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         isValid = VerifySignature.verify(remittanceCanister, dataHash, signature);
     }
 
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
+    function getBalance(string calldata _canisterId) public view returns (uint256 balance) {
+        balance = canisters[keccak256(bytes(_canisterId))];
     }
 
-    function withdraw(uint nonce, uint amount, bytes calldata signature) public nonReentrant {
-        withdrawTo(nonce, amount, signature, msg.sender);
+    function withdraw(string calldata _canisterId, uint nonce, uint amount, bytes calldata signature) public nonReentrant {
+        withdrawTo(_canisterId, nonce, amount, signature, msg.sender);
     }
 
-    // test
-    function withdrawTo(uint nonce, uint amount, bytes calldata signature, address recipient) public {
-        //TODO instead require that the contract has been initialized
+    function withdrawTo(string calldata _canisterId, uint _nonce, uint _amount, bytes calldata _signature, address _recipient) public {
         require(initialized, "CONTRACT_UNINITIALIZED");
-        require(getBalance() >= amount, "AMOUNT > CONTRACT_BALANCE");
-        require(!usedSignatures[signature], "USED_SIGNATURE");
+        require(getBalance(_canisterId) >= _amount, "AMOUNT > CONTRACT_BALANCE");
+        require(!usedSignatures[_signature], "USED_SIGNATURE");
 
-        bytes32 dataHash = keccak256(abi.encodePacked(nonce, amount, msg.sender, chainId));
-        require(validateSignature(dataHash, signature), "INVALID_SIGNATURE");
+        bytes32 dataHash = keccak256(abi.encodePacked(_nonce, _amount, msg.sender, chainId,_canisterId));
+        require(validateSignature(dataHash, _signature), "INVALID_SIGNATURE");
 
-        usedSignatures[signature] = true;
-        payable(recipient).transfer(amount);
-        emit FundsWithdrawn(msg.sender, recipient, amount);
+        usedSignatures[_signature] = true;
+        payable(_recipient).transfer(_amount);
+        emit FundsWithdrawn(msg.sender, _recipient,  _amount);
     }
 
-    // test
-
-    function cancelWithdraw(uint nonce, uint amount, bytes calldata signature) public {
+    function cancelWithdraw(string calldata _canisterId, uint _nonce, uint _amount, bytes calldata _signature) public {
         require(initialized, "CONTRACT_UNINITIALIZED");
-        require(!usedSignatures[signature], "USED_SIGNATURE");
+        require(!usedSignatures[_signature], "USED_SIGNATURE");
 
         // validate the signature
-        bytes32 dataHash = keccak256(abi.encodePacked(nonce, amount, msg.sender, chainId));
-        emit hash(dataHash);
-        require(validateSignature(dataHash, signature), "INVALID_SIGNATURE");
+        bytes32 dataHash = keccak256(abi.encodePacked(_nonce, _amount, msg.sender, chainId, _canisterId));
+        require(validateSignature(dataHash, _signature), "INVALID_SIGNATURE");
 
         // mark signature as used
-        usedSignatures[signature] = true;
-        bytes32 signatureHash = keccak256(signature);
-        // console.log(signatureHash);
+        usedSignatures[_signature] = true;
+        emit WithdrawCanceled(msg.sender, _amount, _signature);
     }
 
     /// @dev required by the OZ UUPS module
