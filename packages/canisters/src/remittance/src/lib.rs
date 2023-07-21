@@ -116,12 +116,12 @@ async fn remit(
     proof: String,
 ) -> remittance::RemittanceReply {
     // make sure the 'proof' is a signature of the amount by the provided address
-    let derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
+    let _derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
         .expect("INVALID_SIGNATURE");
 
     // make sure the signature belongs to the provided account
     assert!(
-        derived_address == account.to_lowercase(),
+        _derived_address == account.to_lowercase(),
         "INVALID_SIGNATURE"
     );
     // make sure the amount being remitted is none zero
