@@ -68,15 +68,21 @@ pub fn hash_remittance_parameters(
     amount: u64,
     address: &str,
     chain_id: &str,
+    dc_canister_id: &str,
+    token_address: &str,
 ) -> Vec<u8> {
     // convert the address to bytes format
     let address: [u8; 20] = utils::string_to_vec_u8(address).try_into().unwrap();
+    let token_address: [u8; 20] = utils::string_to_vec_u8(token_address).try_into().unwrap();
+
     // pack the encoded bytes
     let input = vec![
         SolidityDataType::Number(U256::from(nonce)),
         SolidityDataType::Number(U256::from(amount)),
         SolidityDataType::Address(Address::from(address)),
         SolidityDataType::String(chain_id),
+        SolidityDataType::String(dc_canister_id),
+        SolidityDataType::Address(Address::from(token_address)),
     ];
     let (_bytes, hash) = eth_encode_packed::abi::encode_packed(&input);
 

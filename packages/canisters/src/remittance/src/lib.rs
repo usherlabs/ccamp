@@ -80,7 +80,9 @@ fn update_remittance(
 
     // add checks here to make sure that the input data is error free
     // if there is any error, return it to the calling dc canister
-    if let Err(text) = remittance::validate_remittance_data(is_protocol_dc, &new_remittances, dc_canister) {
+    if let Err(text) =
+        remittance::validate_remittance_data(is_protocol_dc, &new_remittances, dc_canister)
+    {
         // TODO to return error or throw error
         // return Err(text);
         panic!("{text}");
@@ -154,6 +156,8 @@ async fn remit(
             amount,
             &account.to_string(),
             &chain.to_string(),
+            &dc_canister.to_string(),
+            &token.to_string(),
         );
 
         response = remittance::RemittanceReply {
@@ -169,6 +173,8 @@ async fn remit(
             amount,
             &account.to_string(),
             &chain.to_string(),
+            &dc_canister.to_string(),
+            &token.to_string(),
         );
         let balance = get_available_balance(
             token.to_string(),

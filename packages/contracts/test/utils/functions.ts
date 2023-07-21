@@ -1,22 +1,28 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { Sign } from 'crypto';
 import { BigNumberish, ContractTransaction, Signer } from 'ethers';
 import fs from 'fs';
 import { ethers as hEthers, upgrades } from 'hardhat';
 import path from 'path';
 
-import { chainId } from './constants';
+import ERC20 from './abi/ERC20.json';
+import { chainId, testTokenAddress } from './constants';
 
 export async function generateHashAndSignature(
 	nonce: number,
 	amount: BigNumberish,
-	recipient: string,
+	account: string,
 	chainId: string,
+	canisterId: string,
+	tokenAddress: string,
 	signer: Signer
 ) {
 	// generate the has from the amount and hash
 	const encodedData = hEthers.utils.solidityPack(
-		['uint256', 'uint256', 'address', 'string'],
-		[nonce, amount, recipient, chainId]
+		['uint256', 'uint256', 'address', 'string', 'string', 'address'],
+		[nonce, amount, account, chainId, canisterId, tokenAddress]
 	);
+
 	const dataHash = hEthers.utils.keccak256(encodedData);
 	// sign the hash recieved
 	const signature = await signer.signMessage(hEthers.utils.arrayify(dataHash));
@@ -109,3 +115,27 @@ export async function writeJSONToFileOutside(
 		}
 	});
 }
+
+export const getERC20Token = (signer: Signer) =>
+	new hEthers.Contract(testTokenAddress, ERC20, signer);
+
+export const mintTokenAndApproveLocker = async (
+	lockerContractAddress: string
+) => {
+	const amountToMint = hEthers.utils.parseEther('1.0');
+	const allSigners = await hEthers.getSigners();
+
+	// go through all the accounts but last one
+	// and mint them 1*10e18 units of the token
+	await Promise.all(
+		allSigners.map(async (signer, index) => {
+			if (index === allSigners.length - 1) return;
+
+			let tokenContract = await getERC20Token(signer);
+
+			const address = await signer.getAddress();
+			await tokenContract.mint(address, amountToMint);
+			await tokenContract.approve(lockerContractAddress, amountToMint);
+		})
+	);
+};
