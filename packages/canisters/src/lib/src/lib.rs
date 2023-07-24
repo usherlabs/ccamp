@@ -4,8 +4,9 @@ use candid::{CandidType, Principal};
 use serde::Deserialize;
 use std::{collections::BTreeMap, fmt::Display};
 
-mod constants;
-mod utils;
+pub mod constants;
+pub mod utils;
+pub mod dc;
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct Wallet {

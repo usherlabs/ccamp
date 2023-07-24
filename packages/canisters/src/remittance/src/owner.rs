@@ -10,7 +10,7 @@ thread_local! {
 // ------- Access control
 pub fn only_publisher() {
     let caller_principal_id = caller();
-    if !crate::PUBLISHERS.with(|publisher| publisher.borrow().contains(&caller_principal_id)) {
+    if !crate::DC_CANISTERS.with(|publisher| publisher.borrow().contains(&caller_principal_id)) {
         panic!("NOT_ALLOWED");
     }
 }

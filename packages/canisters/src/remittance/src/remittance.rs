@@ -5,7 +5,7 @@
 // ----- Make sure the net, adjustment is zero i.e make sure no balance is created nor destroyed,
 // ----- Only moved from one place to the other
 #![allow(dead_code)]
-use crate::{owner, utils};
+use crate::utils;
 use candid::{CandidType, Principal};
 use easy_hasher::easy_hasher;
 use eth_encode_packed::{
@@ -84,7 +84,7 @@ pub fn hash_remittance_parameters(
         SolidityDataType::String(dc_canister_id),
         SolidityDataType::Address(Address::from(token_address)),
     ];
-    let (_bytes, hash) = eth_encode_packed::abi::encode_packed(&input);
+    let (_bytes, __) = eth_encode_packed::abi::encode_packed(&input);
 
     easy_hasher::raw_keccak256(_bytes.clone()).to_vec()
 }
@@ -134,7 +134,6 @@ pub fn get_available_balance(
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
 pub fn update_balance(new_remittance: lib::DataModel, dc_canister: Principal) {
-    owner::only_publisher();
     crate::REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
 
@@ -159,6 +158,104 @@ pub fn update_balance(new_remittance: lib::DataModel, dc_canister: Principal) {
     });
 }
 
+pub fn confirm_withdrawal(
+    token: String,
+    chain: String,
+    account: String,
+    amount_withdrawn: u64,
+    dc_canister: Principal,
+) -> bool {
+    let chain: lib::Chain = chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
+
+    let hash_key = (
+        token.clone(),
+        chain.clone(),
+        account.clone(),
+        dc_canister.clone(),
+    );
+
+    // go through the witheld amounts and remove this amount from it
+    crate::WITHHELD_AMOUNTS.with(|witheld_amounts| {
+        let mut mut_witheld_amounts = witheld_amounts.borrow_mut();
+        let unwithdrawn_amounts = mut_witheld_amounts
+            .get(&hash_key)
+            .expect("AMOUNT_NOT_WITHELD")
+            .into_iter()
+            .filter(|&amount_to_withdraw| *amount_to_withdraw != amount_withdrawn)
+            .cloned()
+            .collect();
+        mut_witheld_amounts.insert(hash_key, unwithdrawn_amounts);
+    });
+
+    // go through the witheld balance store and remove this amount from it
+    crate::WITHHELD_REMITTANCE.with(|withheld_remittance| {
+        withheld_remittance.borrow_mut().remove(&(
+            token.clone(),
+            chain.clone(),
+            account.clone(),
+            dc_canister.clone(),
+            amount_withdrawn,
+        ));
+    });
+
+    return true;
+}
+
+pub fn cancel_withdrawal(
+    token: String,
+    chain: String,
+    account: String,
+    amount_canceled: u64,
+    dc_canister: Principal,
+) -> bool {
+    let chain: lib::Chain = chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    let account: lib::Wallet = account.try_into().unwrap();
+
+    let hash_key = (
+        token.clone(),
+        chain.clone(),
+        account.clone(),
+        dc_canister.clone(),
+    );
+
+    // go through the witheld amounts and remove this amount from it
+    crate::WITHHELD_AMOUNTS.with(|witheld_amounts| {
+        let mut mut_witheld_amounts = witheld_amounts.borrow_mut();
+        let unwithdrawn_amounts = mut_witheld_amounts
+            .get(&hash_key)
+            .expect("AMOUNT_NOT_WITHELD")
+            .into_iter()
+            .filter(|&amount_to_withdraw| *amount_to_withdraw != amount_canceled)
+            .cloned()
+            .collect();
+        mut_witheld_amounts.insert(hash_key.clone(), unwithdrawn_amounts);
+    });
+
+    // go through the witheld balance store and remove this amount from it
+    crate::WITHHELD_REMITTANCE.with(|withheld_remittance| {
+        withheld_remittance.borrow_mut().remove(&(
+            token.clone(),
+            chain.clone(),
+            account.clone(),
+            dc_canister.clone(),
+            amount_canceled,
+        ));
+    });
+
+    // add the withheld total back to the available balance
+    crate::REMITTANCE.with(|remittance| {
+        if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
+            existing_data.balance = existing_data.balance + amount_canceled;
+        }
+    });
+
+    return true;
+}
+
+
 // use the right validator depending on if the caller is a pdc or not
 pub fn validate_remittance_data(
     is_pdc: bool,
@@ -166,46 +263,81 @@ pub fn validate_remittance_data(
     dc_canister: Principal,
 ) -> Result<(), String> {
     match is_pdc {
-        true => Ok(()),
-        false => validate_dc_remitance_data(new_remittances, dc_canister),
+        true => validate_pdc_remittance_data(new_remittances, dc_canister),
+        false => validate_dc_remittance_data(new_remittances, dc_canister),
     }
 }
 
-// validate data for an ordinary dc canister
-pub fn validate_dc_remitance_data(
+pub fn validate_pdc_remittance_data(
     new_remittances: &Vec<lib::DataModel>,
     dc_canister: Principal,
 ) -> Result<(), String> {
-    // // validate that all operations are adjust and the resultant of amounts is zero
-    // let amount_delta = new_remittances
-    //     .iter()
-    //     .fold(0, |acc, account| acc + account.amount);
+    // validate that all adjust operations lead to a sum of zero
+    let adjust_operations: Vec<lib::DataModel> = new_remittances
+        .into_iter()
+        .filter(|&single_remittance| single_remittance.action == lib::Action::Adjust)
+        .cloned()
+        .collect();
+    // apply the same validation of dc canisters to the adjust operations of a pdc canister
+    if let Err(err_message) = validate_dc_remittance_data(&adjust_operations, dc_canister) {
+        return Err(err_message);
+    };
 
-    // if amount_delta != 0 {
-    //     return Err("SUM_AMOUNT != 0".to_string());
-    // }
+    // validate that all operations that are not "adjust" operations are positive amounts
+    // other than adjusts we currently have no use for negative amounts operations
+    // this can be later changed
+    let non_adjust_operations_gt_0: Vec<&lib::DataModel> = new_remittances
+        .into_iter()
+        .filter(|single_remittance| {
+            single_remittance.action != lib::Action::Adjust && single_remittance.amount < 0
+        })
+        .collect();
+    if non_adjust_operations_gt_0.len() > 0 {
+        return Err("NON_ADJUST_AMOUNT_MUST_BE_GT_0".to_string());
+    };
 
-    // // validate it is only adjust action provided
-    // let is_action_valid = new_remittances
-    //     .iter()
-    //     .all(|item| item.action == lib::Action::Adjust);
+    Ok(())
+}
 
-    // if !is_action_valid {
-    //     return Err("INVALID_ACTION_FOUND".to_string());
-    // }
+// validate data for an ordinary dc canister
+pub fn validate_dc_remittance_data(
+    new_remittances: &Vec<lib::DataModel>,
+    dc_canister: Principal,
+) -> Result<(), String> {
+    // validate that all operations are adjust and the resultant of amounts is zero
+    let amount_delta = new_remittances
+        .iter()
+        .fold(0, |acc, account| acc + account.amount);
+
+    if amount_delta != 0 {
+        return Err("SUM_ADJUST_AMOUNTS != 0".to_string());
+    }
+
+    // validate it is only adjust action provided
+    let is_action_valid = new_remittances
+        .iter()
+        .all(|item| item.action == lib::Action::Adjust);
+
+    if !is_action_valid {
+        return Err("INVALID_ACTION_FOUND".to_string());
+    }
 
     // check for all the negative deductions and confirm that the owners have at least that much balance
     let mut sufficient_balance_error: Result<(), String> = Ok(());
-    // new_remittances
-    //     .iter()
-    //     .filter(|item| item.amount < 0)
-    //     .for_each(|item| {
-    //         let existing_balance =
-    //             get_available_balance(item.token.clone(), item.chain.clone(), item.account.clone(), dc_canister.clone());
-    //         if existing_balance.balance < item.amount.abs() as u64 {
-    //             sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
-    //         };
-    //     });
+    new_remittances
+        .iter()
+        .filter(|&item| item.amount < 0)
+        .for_each(|item| {
+            let existing_balance = get_available_balance(
+                item.token.clone(),
+                item.chain.clone(),
+                item.account.clone(),
+                dc_canister.clone(),
+            );
+            if existing_balance.balance < item.amount.abs() as u64 {
+                sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
+            };
+        });
 
     sufficient_balance_error
 }

@@ -1450,6 +1450,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "protocol_data_collection"
+version = "0.1.0"
+dependencies = [
+ "candid 0.7.18",
+ "ic-cdk 0.5.7",
+ "ic-cdk-macros 0.5.7",
+ "lib",
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
