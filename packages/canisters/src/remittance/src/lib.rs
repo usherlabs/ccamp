@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
-use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, hash};
+use std::{cell::RefCell, collections::HashMap};
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -19,8 +19,12 @@ thread_local! {
     static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
     static WITHHELD_REMITTANCE: RefCell<remittance::WithheldBalanceStore> = RefCell::default();
     static WITHHELD_AMOUNTS: RefCell<remittance::WithheldAmountsStore> = RefCell::default();
+
     static IS_PDC_CANISTER: RefCell<HashMap<Principal, bool>> = RefCell::default();
+
     static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
+
+    static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
 }
 
 // ----------------------------------- init and upgrade hooks
@@ -324,6 +328,17 @@ fn get_withheld_balance(
     remittance::Account { balance: sum }
 }
 
+#[query]
+async fn get_reciept(dc_canister: Principal, nonce: u64) -> remittance::RemittanceReciept {
+    let key = (dc_canister.clone(), nonce.clone());
+    REMITTANCE_RECIEPTS.with(|remittance_reciepts| {
+        remittance_reciepts
+            .borrow()
+            .get(&key)
+            .expect("RECIEPT_NOT_FOUND")
+            .clone()
+    })
+}
 
 #[update]
 async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
@@ -407,4 +422,3 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
 //     }
 //     return redeemed_balance;
 // }
-

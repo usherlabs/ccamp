@@ -1,5 +1,4 @@
 use candid::Principal;
-use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 

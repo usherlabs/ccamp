@@ -16,6 +16,7 @@ use lib;
 use rand::rngs::StdRng;
 use serde_derive::Deserialize;
 use std::{cell::RefCell, collections::HashMap};
+use ic_cdk::api::time;
 
 pub const MAX_CYCLE: u64 = 25_000_000_000;
 thread_local! {
@@ -55,12 +56,33 @@ pub struct RemittanceReply {
     pub amount: u64,
 }
 
+#[derive(CandidType, Deserialize, Debug, Clone)]
+pub struct RemittanceReciept {
+    pub token: String,
+    pub chain: String,
+    pub amount: u64,
+    pub account: String,
+    pub timestamp: u64,
+}
+impl Default for RemittanceReciept {
+    fn default() -> Self {
+        return Self {
+            amount: 0,
+            timestamp: 0,
+            token: String::from(""),
+            chain: String::from(""),
+            account: String::from(""),
+        };
+    }
+}
+
 pub type AvailableBalanceStore =
     HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal), Account>;
 pub type WithheldBalanceStore =
     HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal, u64), WithheldAccount>;
 pub type WithheldAmountsStore =
     HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal), Vec<u64>>;
+pub type RemittanceRecieptsStore = HashMap<(Principal, u64), RemittanceReciept>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn hash_remittance_parameters(
@@ -190,16 +212,33 @@ pub fn confirm_withdrawal(
     });
 
     // go through the witheld balance store and remove this amount from it
-    crate::WITHHELD_REMITTANCE.with(|withheld_remittance| {
-        withheld_remittance.borrow_mut().remove(&(
+    let withdrawn_details = crate::WITHHELD_REMITTANCE.with(|withheld_remittance| {
+        let key = (
             token.clone(),
             chain.clone(),
             account.clone(),
             dc_canister.clone(),
             amount_withdrawn,
-        ));
+        );
+        let withdrawn_balance = withheld_remittance.borrow().get(&key).unwrap().clone();
+        withheld_remittance.borrow_mut().remove(&key);
+
+        withdrawn_balance
     });
 
+    // create a reciept entry here for a succcessfull withdrawal
+    crate::REMITTANCE_RECIEPTS.with(|remittance_reciepts| {
+        remittance_reciepts.borrow_mut().insert(
+            (dc_canister, withdrawn_details.nonce),
+            RemittanceReciept {
+                token: token.to_string(),
+                chain: chain.to_string(),
+                amount: amount_withdrawn,
+                account: account.to_string(),
+                timestamp: time(),
+            },
+        );
+    });
     return true;
 }
 
@@ -254,7 +293,6 @@ pub fn cancel_withdrawal(
 
     return true;
 }
-
 
 // use the right validator depending on if the caller is a pdc or not
 pub fn validate_remittance_data(

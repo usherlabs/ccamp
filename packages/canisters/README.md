@@ -71,7 +71,7 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **subscribe remittance canister to data collection pubsub** -> dfx canister call remittance subscribe_to_dc '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**subscribe remittance canister to protocol-data collection pubsub** -> dfx canister call remittance subscribe_to_pdc '(principal "br5f7-7uaaa-aaaaa-qaaca-cai")'
+**subscribe remittance canister to protocol-data collection pubsub** -> dfx canister call remittance subscribe_to_pdc '(principal "bd3sg-teaaa-aaaaa-qaaba-cai")'
 
 **publish new data from data canister to remittance canister** -> dfx canister call data_collection publish
 
@@ -88,4 +88,6 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 **cancel withdrawal** -> dfx canister call remittance cancel_withdrawal '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **get signature of remittance** -> dfx canister call remittance remit '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",400000,"0x243387ec0d34bc2d003aa12f5a23df356d5329d0e6666e1ba75d8110a8184c695df30da787a3b54c0e2b23599ca5f7d9f4d6025f3e7bf5008743899aacfe94921c")'
+
+**get reciept** -> dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai", 12095196426242356980)'
 
