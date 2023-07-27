@@ -15,6 +15,14 @@
 			"declarations": {
 				"node_compatibility": true
 			}
+		},
+		"protocol_data_collection": {
+			"candid": "src/protocol_data_collection/protocol_data_collection.did",
+			"package": "protocol_data_collection",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
 		}
 	},
 	"output_env_file": ".env",

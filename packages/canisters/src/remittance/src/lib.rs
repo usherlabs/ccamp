@@ -1,8 +1,8 @@
 use candid::Principal;
-use easy_hasher::easy_hasher;
+use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::HashMap};
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -19,7 +19,12 @@ thread_local! {
     static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
     static WITHHELD_REMITTANCE: RefCell<remittance::WithheldBalanceStore> = RefCell::default();
     static WITHHELD_AMOUNTS: RefCell<remittance::WithheldAmountsStore> = RefCell::default();
-    static PUBLISHERS: RefCell<Vec<Principal>> = RefCell::default();
+
+    static IS_PDC_CANISTER: RefCell<HashMap<Principal, bool>> = RefCell::default();
+
+    static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
+
+    static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
 }
 
 // ----------------------------------- init and upgrade hooks
@@ -52,18 +57,29 @@ fn name() -> String {
 // we call this method, with the id of the data_collection canister
 // this then subscribes the remittance canister to "REMITTANCE" events from the data cannister
 #[update]
-async fn setup_subscribe(publisher_id: Principal) {
+async fn subscribe_to_dc(canister_id: Principal) {
     owner::only_owner();
     let subscriber = lib::Subscriber {
         topic: REMITTANCE_EVENT.to_string(),
     };
-    let _call_result: Result<(), _> = ic_cdk::call(publisher_id, "subscribe", (subscriber,)).await;
+    let _call_result: Result<(), _> = ic_cdk::call(canister_id, "subscribe", (subscriber,)).await;
     // update the list of all the publishers subscribed to while avoiding duplicates
-    PUBLISHERS.with(|publisher| {
-        let mut borrowed_publisher = publisher.borrow_mut();
-        if !borrowed_publisher.contains(&publisher_id) {
-            borrowed_publisher.push(publisher_id)
+    DC_CANISTERS.with(|dc_canister| {
+        let mut borrowed_canister = dc_canister.borrow_mut();
+        if !borrowed_canister.contains(&canister_id) {
+            borrowed_canister.push(canister_id)
         }
+    });
+}
+
+// we call this method to subscribe to a pdc
+// it can only be called by the address who deployed the contract
+#[update]
+async fn subscribe_to_pdc(pdc_canister_id: Principal) {
+    owner::only_owner();
+    subscribe_to_dc(pdc_canister_id).await;
+    IS_PDC_CANISTER.with(|is_pdc_canister| {
+        is_pdc_canister.borrow_mut().insert(pdc_canister_id, true);
     });
 }
 
@@ -75,13 +91,14 @@ fn update_remittance(
     dc_canister: Principal,
 ) -> Result<(), String> {
     owner::only_publisher();
-    // TODO derive this value by comparing the caller to a list of registered protocol canisters
-    let is_protocol_dc = false;
+
+    let is_pdc =
+        IS_PDC_CANISTER.with(|is_pdc_canister| is_pdc_canister.borrow().contains_key(&caller()));
 
     // add checks here to make sure that the input data is error free
     // if there is any error, return it to the calling dc canister
-    if let Err(text) = remittance::validate_remittance_data(is_protocol_dc, &new_remittances, dc_canister) {
-        // TODO to return error or throw error
+    if let Err(text) = remittance::validate_remittance_data(is_pdc, &new_remittances, dc_canister) {
+        // TODO confirm if to return error or throw error?
         // return Err(text);
         panic!("{text}");
     }
@@ -90,9 +107,33 @@ fn update_remittance(
     // the request type and if the canister calling the method is a request canister
     for new_remittance in new_remittances {
         // leave it named as underscore until we have implemented a use for the response
-        let _ = match (is_protocol_dc, new_remittance.action.clone()) {
-            (_, lib::Action::Adjust) => {
+        let _ = match new_remittance.action.clone() {
+            lib::Action::Adjust => {
                 remittance::update_balance(new_remittance, dc_canister);
+                Ok(())
+            }
+            lib::Action::Deposit => {
+                remittance::update_balance(new_remittance, dc_canister);
+                Ok(())
+            }
+            lib::Action::Withdraw => {
+                remittance::confirm_withdrawal(
+                    new_remittance.token.to_string(),
+                    new_remittance.chain.to_string(),
+                    new_remittance.account.to_string(),
+                    new_remittance.amount as u64,
+                    dc_canister,
+                );
+                Ok(())
+            }
+            lib::Action::CancelWithdraw => {
+                remittance::cancel_withdrawal(
+                    new_remittance.token.to_string(),
+                    new_remittance.chain.to_string(),
+                    new_remittance.account.to_string(),
+                    new_remittance.amount as u64,
+                    dc_canister,
+                );
                 Ok(())
             }
             // ignore every other condition we have not created yet
@@ -114,12 +155,12 @@ async fn remit(
     proof: String,
 ) -> remittance::RemittanceReply {
     // make sure the 'proof' is a signature of the amount by the provided address
-    let derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
+    let _derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
         .expect("INVALID_SIGNATURE");
 
     // make sure the signature belongs to the provided account
     assert!(
-        derived_address == account.to_lowercase(),
+        _derived_address == account.to_lowercase(),
         "INVALID_SIGNATURE"
     );
     // make sure the amount being remitted is none zero
@@ -154,6 +195,8 @@ async fn remit(
             amount,
             &account.to_string(),
             &chain.to_string(),
+            &dc_canister.to_string(),
+            &token.to_string(),
         );
 
         response = remittance::RemittanceReply {
@@ -169,6 +212,8 @@ async fn remit(
             amount,
             &account.to_string(),
             &chain.to_string(),
+            &dc_canister.to_string(),
+            &token.to_string(),
         );
         let balance = get_available_balance(
             token.to_string(),
@@ -283,61 +328,16 @@ fn get_withheld_balance(
     remittance::Account { balance: sum }
 }
 
-#[update]
-fn clear_withheld_balance(
-    token: String,
-    chain: String,
-    account: String,
-    dc_canister: Principal,
-) -> remittance::Account {
-    let chain: lib::Chain = chain.try_into().unwrap();
-    let token: lib::Wallet = token.try_into().unwrap();
-    let account: lib::Wallet = account.try_into().unwrap();
-
-    let hash_key = (
-        token.clone(),
-        chain.clone(),
-        account.clone(),
-        dc_canister.clone(),
-    );
-
-    // why not use hash key as the key? why redefine
-    let redeemed_balance = get_withheld_balance(
-        token.to_string(),
-        chain.to_string(),
-        account.to_string(),
-        dc_canister.clone(),
-    );
-    // if this user has some pending withdrawals for these parameters
-    if redeemed_balance.balance > 0 {
-        // then for each amount delete the entry/cache from the withheld balance
-        WITHHELD_AMOUNTS.with(|withheld_amount| {
-            let mut mut_withheld_amount = withheld_amount.borrow_mut();
-            mut_withheld_amount
-                .get(&hash_key)
-                .unwrap()
-                .iter()
-                .for_each(|amount| {
-                    WITHHELD_REMITTANCE.with(|withheld_remittance| {
-                        withheld_remittance.borrow_mut().remove(&(
-                            token.clone(),
-                            chain.clone(),
-                            account.clone(),
-                            dc_canister.clone(),
-                            *amount,
-                        ));
-                    })
-                });
-            mut_withheld_amount.remove(&hash_key);
-        });
-        // add the withheld total back to the available balance
-        REMITTANCE.with(|remittance| {
-            if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
-                existing_data.balance = existing_data.balance + redeemed_balance.balance;
-            }
-        });
-    }
-    return redeemed_balance;
+#[query]
+async fn get_reciept(dc_canister: Principal, nonce: u64) -> remittance::RemittanceReciept {
+    let key = (dc_canister.clone(), nonce.clone());
+    REMITTANCE_RECIEPTS.with(|remittance_reciepts| {
+        remittance_reciepts
+            .borrow()
+            .get(&key)
+            .expect("RECIEPT_NOT_FOUND")
+            .clone()
+    })
 }
 
 #[update]
@@ -365,3 +365,60 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
         etherum_pk: address,
     })
 }
+
+// #[update]
+// fn clear_withheld_balance(
+//     token: String,
+//     chain: String,
+//     account: String,
+//     dc_canister: Principal,
+// ) -> remittance::Account {
+//     let chain: lib::Chain = chain.try_into().unwrap();
+//     let token: lib::Wallet = token.try_into().unwrap();
+//     let account: lib::Wallet = account.try_into().unwrap();
+
+//     let hash_key = (
+//         token.clone(),
+//         chain.clone(),
+//         account.clone(),
+//         dc_canister.clone(),
+//     );
+
+//     // why not use hash key as the key? why redefine
+//     let redeemed_balance = get_withheld_balance(
+//         token.to_string(),
+//         chain.to_string(),
+//         account.to_string(),
+//         dc_canister.clone(),
+//     );
+//     // if this user has some pending withdrawals for these parameters
+//     if redeemed_balance.balance > 0 {
+//         // then for each amount delete the entry/cache from the withheld balance
+//         WITHHELD_AMOUNTS.with(|withheld_amount| {
+//             let mut mut_withheld_amount = withheld_amount.borrow_mut();
+//             mut_withheld_amount
+//                 .get(&hash_key)
+//                 .unwrap()
+//                 .iter()
+//                 .for_each(|amount| {
+//                     WITHHELD_REMITTANCE.with(|withheld_remittance| {
+//                         withheld_remittance.borrow_mut().remove(&(
+//                             token.clone(),
+//                             chain.clone(),
+//                             account.clone(),
+//                             dc_canister.clone(),
+//                             *amount,
+//                         ));
+//                     })
+//                 });
+//             mut_withheld_amount.remove(&hash_key);
+//         });
+//         // add the withheld total back to the available balance
+//         REMITTANCE.with(|remittance| {
+//             if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
+//                 existing_data.balance = existing_data.balance + redeemed_balance.balance;
+//             }
+//         });
+//     }
+//     return redeemed_balance;
+// }

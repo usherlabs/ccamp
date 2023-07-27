@@ -18,13 +18,26 @@ type RemittanceReply = record {
 	hash : text;
 };
 
+type RecieptReply = record {
+	token : text;
+	chain : text;
+	amount : nat64;
+	account : text;
+	timestamp : nat64;
+}
+
 service : {
 	"owner" : () -> (text) query;
 	"name" : () -> (text) query;
-	"setup_subscribe" : (publisher_id : principal) -> ();
+	"public_key" : () -> (variant { Ok : record { sec1_pk : text; etherum_pk : text }; Err : text });
+
+	"subscribe_to_dc" : (dc_canister_id : principal) -> ();
+	"subscribe_to_pdc" : (pdc_canister_id : principal) -> ();
+
 	"remit" : (token : text, chain : text, account : text, dc_canister : principal, amount : nat64, proof : text) -> (RemittanceReply);
+	"get_reciept" : (dc_canister_id : principal, nonce : nat64) -> (RecieptReply) query;
+
 	"get_available_balance" : (token : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
 	"get_withheld_balance" : (ticker : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
-	"clear_withheld_balance" : (ticker : text, chain : text, account : text, dc_canister : principal) -> (Account);
-	"public_key" : () -> (variant { Ok : record { sec1_pk : text; etherum_pk : text }; Err : text });
+
 };

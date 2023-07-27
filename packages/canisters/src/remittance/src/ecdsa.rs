@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{ecdsa, ethereum, remittance, utils};
+use crate::{ecdsa};
 use ic_cdk::export::{
     candid::CandidType,
     serde::{Deserialize, Serialize},

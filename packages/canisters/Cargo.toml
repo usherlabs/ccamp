@@ -2,5 +2,6 @@
 members = [
     "src/remittance",
     "src/data_collection",
+    "src/protocol_data_collection",
     "src/lib"
 ]

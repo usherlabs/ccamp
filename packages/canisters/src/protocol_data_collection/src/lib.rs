@@ -1,5 +1,4 @@
 use candid::Principal;
-use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
@@ -38,41 +37,44 @@ fn is_subscribed(principal: Principal) -> bool {
 async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
-    let sample_adjust_one = lib::DataModel {
+    let sample_deposit_one = lib::DataModel {
         token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
             .to_string()
             .try_into()
             .unwrap(),
         chain: lib::Chain::Ethereum1,
-        amount: 100,
-        account: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        action: lib::Action::Adjust,
-    };
-
-    let sampe_adjust_two = lib::DataModel {
-        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        chain: lib::Chain::Ethereum1,
-        amount: -100,
+        amount: 1000000,
         account: "0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432"
             .to_string()
             .try_into()
             .unwrap(),
-        action: lib::Action::Adjust,
+        action: lib::Action::Deposit,
     };
 
-    let bulk_update = vec![sample_adjust_one, sampe_adjust_two];
+    let sample_deposit_two = lib::DataModel {
+        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+            .to_string()
+            .try_into()
+            .unwrap(),
+        chain: lib::Chain::Ethereum1,
+        amount: 500000,
+        account: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+            .to_string()
+            .try_into()
+            .unwrap(),
+        action: lib::Action::Deposit,
+    };
+
+    let bulk_update = vec![
+        sample_deposit_one,
+        sample_deposit_two,
+    ];
+    // TODO make this the dc_canister responsible for the incoming data
+    let dc_canister: Principal = "bkyz2-fmaaa-aaaaa-qaaaq-cai".try_into().unwrap();
 
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
             if v.topic == REMITTANCE_EVENT {
-                // TODO
-                let dc_canister = api::id();
                 let _call_result: Result<(), _> =
                     ic_cdk::notify(*k, "update_remittance", (&bulk_update, dc_canister));
             }
