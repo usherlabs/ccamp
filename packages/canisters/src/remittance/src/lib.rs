@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicU64};
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -25,6 +25,9 @@ thread_local! {
     static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
 
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
 }
 
 // ----------------------------------- init and upgrade hooks
@@ -107,7 +110,7 @@ fn update_remittance(
     // the request type and if the canister calling the method is a request canister
     for new_remittance in new_remittances {
         // leave it named as underscore until we have implemented a use for the response
-        let _ = match new_remittance.action.clone() {
+        let _: Result<(), String> = match new_remittance.action.clone() {
             lib::Action::Adjust => {
                 remittance::update_balance(new_remittance, dc_canister);
                 Ok(())
@@ -136,8 +139,6 @@ fn update_remittance(
                 );
                 Ok(())
             }
-            // ignore every other condition we have not created yet
-            _ => Err("INVALID_ACTION"),
         };
     }
 

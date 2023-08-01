@@ -39,5 +39,4 @@ service : {
 
 	"get_available_balance" : (token : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
 	"get_withheld_balance" : (ticker : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
-
 };

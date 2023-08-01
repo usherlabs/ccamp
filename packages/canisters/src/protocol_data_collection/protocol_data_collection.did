@@ -11,4 +11,6 @@ service : {
 	"subscribe" : (subscriber : Subscriber) -> ();
 	"is_subscribed" : (canister : principal) -> (bool) query;
 	"publish" : () -> ();
+
+	"counter" : () -> (nat64) query;
 };
