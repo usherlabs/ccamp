@@ -12,7 +12,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@ccamp/canisters": "workspace:^",
+    "@ccamp/canisters": "*",
     "@dfinity/agent": "^0.15.7",
     "@dfinity/assets": "^0.15.7",
     "@dfinity/candid": "^0.15.7",
@@ -22,7 +22,6 @@
     "image-thumbnail": "^1.0.15",
     "isomorphic-fetch": "^3.0.0",
     "mmmagic": "^0.5.3",
-    "prettier": "^2.8.8",
     "sha256-file": "^1.0.0"
   },
   "devDependencies": {

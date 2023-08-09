@@ -91,3 +91,6 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **get reciept** -> dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai", 12095196426242356980)'
 
+
+0x9C89bD2B4A5B001DF8e6C9556eFf8A7ab66584ff -> locker on goerli
+0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a -> token on goerli

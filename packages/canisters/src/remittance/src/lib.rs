@@ -2,7 +2,11 @@ use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 use lib;
+<<<<<<< HEAD
 use std::{cell::RefCell, collections::HashMap};
+=======
+use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicU64};
+>>>>>>> 9391e4c (create relay monorepo)
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -25,6 +29,12 @@ thread_local! {
     static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
 
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
+<<<<<<< HEAD
+=======
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+>>>>>>> 9391e4c (create relay monorepo)
 }
 
 // ----------------------------------- init and upgrade hooks
@@ -107,7 +117,11 @@ fn update_remittance(
     // the request type and if the canister calling the method is a request canister
     for new_remittance in new_remittances {
         // leave it named as underscore until we have implemented a use for the response
+<<<<<<< HEAD
         let _ = match new_remittance.action.clone() {
+=======
+        let _: Result<(), String> = match new_remittance.action.clone() {
+>>>>>>> 9391e4c (create relay monorepo)
             lib::Action::Adjust => {
                 remittance::update_balance(new_remittance, dc_canister);
                 Ok(())
@@ -136,8 +150,11 @@ fn update_remittance(
                 );
                 Ok(())
             }
+<<<<<<< HEAD
             // ignore every other condition we have not created yet
             _ => Err("INVALID_ACTION"),
+=======
+>>>>>>> 9391e4c (create relay monorepo)
         };
     }
 

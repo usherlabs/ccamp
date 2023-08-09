@@ -2,6 +2,8 @@ use candid::Principal;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
+
+mod logstore;
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
