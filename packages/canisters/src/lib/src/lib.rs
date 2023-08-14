@@ -5,9 +5,9 @@ use serde::Deserialize;
 use std::{collections::BTreeMap, fmt::Display};
 
 pub mod constants;
-pub mod utils;
 pub mod dc;
 pub mod owner;
+pub mod utils;
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct Wallet {
@@ -55,6 +55,20 @@ pub enum Action {
     Deposit,
     Withdraw,
     CancelWithdraw,
+}
+
+impl TryFrom<String> for Action {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match &value[..] {
+            "WithdrawCanceled" => Ok(Self::CancelWithdraw),
+            "FundsDeposited" => Ok(Self::Deposit),
+            "FundsWithdrawn" => Ok(Self::Withdraw),
+            "BalanceAdjusted" => Ok(Self::Adjust),
+            _ => Err("INVALID_ACTION".to_string()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]

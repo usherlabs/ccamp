@@ -5,7 +5,7 @@
   "repository": "https://github.com/gelatodigital/web3-functions-hardhat-template",
   "private": false,
   "scripts": {
-    "start-relayer:goerli": "npx hardhat w3f-run relayer --logs --network goerli",
+    "run-relayer:goerli": "npx hardhat w3f-run relayer --logs --network goerli",
     "build": "yarn clean && yarn install && yarn compile && npx tsc",
     "compile": "npx hardhat compile --force",
     "clean": "rm -rf dist",

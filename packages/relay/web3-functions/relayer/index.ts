@@ -80,6 +80,8 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     };
   }
 
+  console.log(parsedEvent);
+
   // TODO use an http interface to publish events to a stream
   // const logStoreClient = new LogStoreClient({
   //   ...CONFIG_TEST,

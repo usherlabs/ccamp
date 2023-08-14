@@ -20,9 +20,9 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     mapping(bytes => bool) usedSignatures;
     mapping(bytes32 => mapping(address => uint256)) public canisters; //keccak256(principal) => tokenAddress => amountDeposited
 
-    event FundsDeposited(string canisterId, address indexed account, uint amount);
-    event FundsWithdrawn(string canisterId, address indexed account, address indexed recipient, uint amount);
-    event WithdrawCanceled(string canisterId, address indexed account, uint amount, bytes32 signatureHash);
+    event FundsDeposited(string canisterId, address indexed account, uint amount, string chain, string token);
+    event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, string token);
+    event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, string token);
     event UpdateRemittanceCanister(address remittanceCanister);
 
     function initialize(address _remittanceCanister, string calldata _chainId) public initializer {
@@ -42,7 +42,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         IERC20Upgradeable(_token).transferFrom(msg.sender, address(this), _amount);
         canisters[keccak256(bytes(_canisterId))][_token] += _amount;
 
-        emit FundsDeposited(_canisterId, msg.sender, _amount);
+        emit FundsDeposited(_canisterId, msg.sender, _amount, chainId, _token);
     }
 
     function setRemittanceCanisterAddress(address _remittanceCanister) public onlyOwner {
@@ -86,7 +86,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         usedSignatures[_signature] = true;
         IERC20Upgradeable(_token).transfer(_recipient, _amount);
 
-        emit FundsWithdrawn(_canisterId, msg.sender, _recipient, _amount);
+        emit FundsWithdrawn(_canisterId, msg.sender, _amount, chainId, _token);
     }
 
     function cancelWithdraw(
@@ -105,8 +105,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
 
         // mark signature as used
         usedSignatures[_signature] = true;
-        bytes32 sigHash = keccak256(_signature);
-        emit WithdrawCanceled(_canisterId, msg.sender, _amount, sigHash);
+        emit WithdrawCanceled(_canisterId, msg.sender, _amount,chainId, _token);
     }
 
     /// @dev required by the OZ UUPS module

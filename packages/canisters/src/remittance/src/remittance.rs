@@ -18,7 +18,8 @@ use rand::rngs::StdRng;
 use serde_derive::Deserialize;
 use std::{cell::RefCell, collections::HashMap};
 
-pub const MAX_CYCLE: u64 = 25_000_000_000;thread_local! {
+pub const MAX_CYCLE: u64 = 25_000_000_000;
+thread_local! {
     static RNG: RefCell<Option<StdRng>> = RefCell::new(None);
 }
 #[derive(Clone, Debug, CandidType, Deserialize)]

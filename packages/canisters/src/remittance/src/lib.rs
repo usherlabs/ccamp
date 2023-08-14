@@ -94,7 +94,6 @@ fn update_remittance(
     dc_canister: Principal,
 ) -> Result<(), String> {
     owner::only_publisher();
-
     let is_pdc =
         IS_PDC_CANISTER.with(|is_pdc_canister| is_pdc_canister.borrow().contains_key(&caller()));
 
