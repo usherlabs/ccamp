@@ -11,6 +11,7 @@ mod owner;
 mod random;
 mod remittance;
 mod utils;
+use lib;
 
 // TODO research on preserving state of dc and r canisters when upgrade happens
 
@@ -100,9 +101,7 @@ fn update_remittance(
     // add checks here to make sure that the input data is error free
     // if there is any error, return it to the calling dc canister
     if let Err(text) = remittance::validate_remittance_data(is_pdc, &new_remittances, dc_canister) {
-        // TODO confirm if to return error or throw error?
-        // return Err(text);
-        panic!("{text}");
+        return Err(text);
     }
 
     // process each 'MESSAGE' sent to the DC canister based on
