@@ -12,14 +12,13 @@ use eth_encode_packed::{
     ethabi::{ethereum_types::U256, Address},
     SolidityDataType,
 };
+use ic_cdk::api::time;
 use lib;
 use rand::rngs::StdRng;
 use serde_derive::Deserialize;
 use std::{cell::RefCell, collections::HashMap};
-use ic_cdk::api::time;
 
-pub const MAX_CYCLE: u64 = 25_000_000_000;
-thread_local! {
+pub const MAX_CYCLE: u64 = 25_000_000_000;thread_local! {
     static RNG: RefCell<Option<StdRng>> = RefCell::new(None);
 }
 #[derive(Clone, Debug, CandidType, Deserialize)]

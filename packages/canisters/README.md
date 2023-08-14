@@ -77,17 +77,20 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **publish new data from data canister to remittance canister** -> dfx canister call protocol_data_collection publish
 
-**query remittance canister balance to make sure it gets the data** -> dfx canister call remittance get_available_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**query remittance canister balance to make sure it gets the data** -> dfx canister call remittance get_available_balance '("0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**query remittance canister withheld balance to make sure it gets the data** -> dfx canister call remittance get_withheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**query remittance canister withheld balance to make sure it gets the data** -> dfx canister call remittance get_withheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:5","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**clear witheld balance** -> dfx canister call remittance clear_withheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**clear witheld balance** -> dfx canister call remittance clear_withheld_balance '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:5","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**confirm withdrawal** -> dfx canister call remittance confirm_withdrawal '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**confirm withdrawal** -> dfx canister call remittance confirm_withdrawal '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:5","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**cancel withdrawal** -> dfx canister call remittance cancel_withdrawal '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**cancel withdrawal** -> dfx canister call remittance cancel_withdrawal '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:5","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**get signature of remittance** -> dfx canister call remittance remit '("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","ethereum:1","0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",400000,"0x243387ec0d34bc2d003aa12f5a23df356d5329d0e6666e1ba75d8110a8184c695df30da787a3b54c0e2b23599ca5f7d9f4d6025f3e7bf5008743899aacfe94921c")'
+**get signature of remittance** -> dfx canister call remittance remit '("0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",100000,"0xc1f88bc447b9ab9783f25fb5e88c5eefec0b563e4a60316e007834b506490ed25b21d1d6827a5c965738aba8869d7ab08b6e7b9f4a6bce6cf0f3f577037d9fdb1c")'
 
 **get reciept** -> dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai", 12095196426242356980)'
 
+
+0x44F697266885F0dFa6F9b1C4B13C2cCFc1bD6Fb4 -> locker on goerli
+0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a -> dummy token address on goerli

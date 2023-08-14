@@ -8,7 +8,9 @@ type Subscriber = record {
 service : {
 	"owner" : () -> (text) query;
 	"name" : () -> (text) query;
-	"subscribe" : (subscriber : Subscriber) -> ();
+	"counter" : () -> (nat64) query;
 	"is_subscribed" : (canister : principal) -> (bool) query;
+	"subscribe" : (subscriber : Subscriber) -> ();
 	"publish" : () -> ();
+	"update_data": () -> ();
 };

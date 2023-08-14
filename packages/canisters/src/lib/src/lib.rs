@@ -7,6 +7,7 @@ use std::{collections::BTreeMap, fmt::Display};
 pub mod constants;
 pub mod utils;
 pub mod dc;
+pub mod owner;
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct Wallet {
@@ -73,6 +74,7 @@ pub struct Subscriber {
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub enum Chain {
     Ethereum1,
+    Ethereum5,
     Polygon137,
     Icp,
 }
@@ -88,6 +90,7 @@ impl TryFrom<String> for Chain {
         let lowercase_chain_name = &chain_name.to_lowercase()[..];
         match (lowercase_chain_name, chain_id) {
             ("ethereum", "1") => Ok(Chain::Ethereum1),
+            ("ethereum", "5") => Ok(Chain::Ethereum5),
             ("polygon", "137") => Ok(Chain::Polygon137),
             ("icp", _) => Ok(Chain::Icp),
             _ => Err(String::from("INVALID CHAIN")),
@@ -98,6 +101,7 @@ impl Display for Chain {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Ethereum1 => write!(f, "ethereum:1"),
+            Self::Ethereum5 => write!(f, "ethereum:5"),
             Self::Polygon137 => write!(f, "polygon:137"),
             Self::Icp => write!(f, "icp"),
         }

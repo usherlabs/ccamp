@@ -1456,9 +1456,11 @@ dependencies = [
  "candid 0.7.18",
  "ic-cdk 0.5.7",
  "ic-cdk-macros 0.5.7",
+ "ic-cdk-timers",
  "lib",
  "serde",
  "serde_derive",
+ "serde_json",
 ]
 
 [[package]]

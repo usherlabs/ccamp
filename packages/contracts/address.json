@@ -1,1 +1,8 @@
-{"31337":{"lockerContractAddress":"0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"}}
+{
+	"31337": {
+		"lockerContractAddress": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+	},
+	"5": {
+		"lockerContractAddress": "0x44F697266885F0dFa6F9b1C4B13C2cCFc1bD6Fb4"
+	}
+}
