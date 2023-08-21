@@ -1,8 +1,8 @@
 use candid::Principal;
+use ic_cdk::print;
 use ic_cdk_macros::{init, post_upgrade, query, update};
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
-
 
 mod logstore;
 mod remittance;
@@ -10,27 +10,24 @@ mod remittance;
 const TIMER_INTERVAL_SEC: u64 = 60;
 thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
 }
 
 // ----------------------------------- init and upgrade hooks
 #[init]
-fn init() {
+async fn init() {
     lib::owner::init_owner();
-    ic_cdk_timers::set_timer_interval(
-        std::time::Duration::from_secs(TIMER_INTERVAL_SEC),
-        logstore::query_logstore,
-    );
+    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
+        ic_cdk::spawn(logstore::query_logstore())
+    });
 }
 
 // upon upgrade of contracts, state is  lost
 // so we need to reinitialize important variables here
 #[post_upgrade]
-fn upgrade() {
-    init();
+async fn upgrade() {
+    init().await;
 }
 // ----------------------------------- init and upgrade hooks
-
 
 // @dev testing command
 #[query]
@@ -46,16 +43,14 @@ fn owner() -> String {
 
 // fect dummy var to confirm timer is working
 #[query]
-fn counter() -> u64 {
-    logstore::COUNTER.with(|counter| counter.load(Ordering::Relaxed))
+fn last_queried_timestamp() -> u64 {
+    logstore::get_last_timestamp()
 }
 
 #[update]
 pub async fn update_data() {
     lib::owner::only_owner();
-    // dummy action, will be replaced with http call to logstore network
-    // for now json data is mocked in order to deposit to the network from a json response from an http endpoint
-    logstore::query_logstore_wip().await;
+    logstore::query_logstore().await;
 }
 
 // this function is going to be called by the remittance canister
@@ -74,4 +69,3 @@ fn subscribe(subscriber: lib::Subscriber) {
 fn is_subscribed(principal: Principal) -> bool {
     SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
 }
-

@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 
 // go through each event and create a model response
 export function mapEvent({ event, args }: ethers.Event) {
-  if (!args) return;
+  if (!args) throw new Error("INVALID_EVENT_PARSED");
   args = { ...args };
 
   return {

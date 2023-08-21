@@ -7,15 +7,14 @@ import contractAddresses from "@ccamp/contracts/address.json";
 import { abi as LockerABI } from "@ccamp/contracts/artifacts/contracts/Locker.sol/Locker.json";
 import { BLOCK_STORAGE_KEY, START_BLOCK_NUM } from "./utils/constants";
 import { mapEvent } from "./utils/functions";
-import { LogStoreClient, CONFIG_TEST } from "@logsn/client";
+import ky from "ky";
 
 const MAX_RANGE = 100; // limit range of events to comply with rpc providers
 const MAX_REQUESTS = 9; // limit number of requests on every execution to avoid hitting timeout
+const PUBLISH_URL = "http://localhost:3000/publish";
 
 Web3Function.onRun(async (context: Web3FunctionContext) => {
   const { userArgs, storage, multiChainProvider, secrets } = context;
-  const evmPk = await secrets.get("EVM_PK");
-
   const { startBlock: defaultStartBlock, streamId } = userArgs;
 
   // get the details about the contract
@@ -34,6 +33,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
 
   // fetch the current block
   const currentBlock = (await provider.getBlockNumber()) - 1;
+  console.log(`Current block: ${currentBlock}`);
 
   // Fetch recent logs in range of 100 blocks
   const filter = [
@@ -70,7 +70,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
   // push the events to the predefied stream in logstore
   const parsedEvent = totalEvents.map(mapEvent);
   console.log(
-    `${parsedEvent.length} events were fetched in total to block:${lastProcessedBlock}  `
+    `${parsedEvent.length} events were fetched in total from block:${lastProcessedBlock} to block:${lastProcessedBlock}  `
   );
 
   if (parsedEvent.length === 0) {
@@ -80,23 +80,15 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     };
   }
 
-  console.log(parsedEvent);
+  console.log({ parsedEvent });
 
-  // TODO use an http interface to publish events to a stream
-  // const logStoreClient = new LogStoreClient({
-  //   ...CONFIG_TEST,
-  //   auth: {
-  //     privateKey: String(evmPk),
-  //   },
-  // });
-  // // create the stream
-  // const stream = await logStoreClient.getOrCreateStream({
-  //   id: String(streamId),
-  // });
+  const response = await ky
+    .post(PUBLISH_URL, {
+      json: parsedEvent,
+    })
+    .json();
 
-  // const response = await stream.publish(parsedEvent);
-
-  // Update storage for next run
+  console.log({ response });
   await storage.set(BLOCK_STORAGE_KEY, lastProcessedBlock.toString());
   return {
     canExec: true,

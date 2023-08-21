@@ -15,7 +15,8 @@
     "lint": "eslint --cache . && yarn lint:sol",
     "lint:ts": "eslint -c .eslintrc.json --ext \"**/*.ts\" \"**/*.test.ts\"",
     "lint:sol": "solhint contracts/**/*.sol",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "postinstall": "cp -rf ../../node_modules/deno-bin ./node_modules"
   },
   "license": "ISC",
   "devDependencies": {
@@ -63,6 +64,6 @@
     "@gelatonetwork/web3-functions-sdk": "^2.1.2",
     "@logsn/client": "^0.0.5",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "ky": "^0.33.2"
+    "ky": "^0.33.3"
   }
 }

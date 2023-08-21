@@ -20,9 +20,9 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     mapping(bytes => bool) usedSignatures;
     mapping(bytes32 => mapping(address => uint256)) public canisters; //keccak256(principal) => tokenAddress => amountDeposited
 
-    event FundsDeposited(string canisterId, address indexed account, uint amount, string chain, string token);
-    event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, string token);
-    event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, string token);
+    event FundsDeposited(string canisterId, address indexed account, uint amount, string chain, address token);
+    event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, address token);
+    event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, address token);
     event UpdateRemittanceCanister(address remittanceCanister);
 
     function initialize(address _remittanceCanister, string calldata _chainId) public initializer {

@@ -2,6 +2,7 @@ use candid::Principal;
 use ic_cdk::api::management_canister::http_request::{
     http_request, CanisterHttpRequestArgument, HttpMethod,
 };
+use ic_cdk::api::time;
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -9,7 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::remittance;
 
 thread_local! {
-    pub static COUNTER: AtomicU64 = AtomicU64::new(0);
+    pub static LAST_TIMESTAMP: AtomicU64 = AtomicU64::new(0);
 }
 
 #[derive(Deserialize, Debug)]
@@ -35,22 +36,24 @@ impl Into<lib::DataModel> for Event {
 }
 
 // dummy function to confirm the timer is continously running
-pub fn query_logstore() {
-    // dummy action, will be replaced with http call to logstore network
-    COUNTER.with(|counter| counter.fetch_add(1, Ordering::Relaxed));
+pub fn get_last_timestamp() -> u64 {
+    LAST_TIMESTAMP.with(|counter| counter.load(Ordering::Relaxed))
 }
 
 // the function to query the logstore
-pub async fn query_logstore_wip() {
-    // TOD change this URL to the query url and its query parameters
-    let url = "https://my-json-server.typicode.com/typicode/demo/posts";
-    // let url = format!(
-    //     "https://{}/products/ICP-USD/candles?start={}&end={}&granularity={}",
-    //     host,
-    //     start_timestamp.to_string(),
-    //     start_timestamp.to_string(),
-    //     seconds_of_time.to_string()
-    // );
+pub async fn query_logstore() {
+    // confirm at least one remittance canister is subscribed to this pdc
+    let subscribers_length = crate::SUBSCRIBERS.with(|subscribers| subscribers.borrow().len());
+    if subscribers_length == 0 {
+        panic!("NO_SUBSCRIBER")
+    }
+    let last_timestamp = get_last_timestamp();
+    // update his value to the current timestamp
+
+    let url = format!(
+        "https://better-boats-slide.loca.lt/query?from={}",
+        last_timestamp
+    );
 
     let request_headers = vec![
         // HttpHeader {
@@ -88,60 +91,11 @@ pub async fn query_logstore_wip() {
             //We need to decode that Vec<u8> that is the body into readable text.
             //To do this, we:
             //  1. Call `String::from_utf8()` on response.body
-            // let str_body = String::from_utf8(response.body)
-            //     .expect("Transformed response is not UTF-8 encoded.");
+            let str_body = String::from_utf8(response.body)
+                .expect("Transformed response is not UTF-8 encoded.");
 
-            // ========================================= For now we will mock a sample response that we expect from the api ================================ //
-            // {
-            //     "chain":"ethereum:5",
-            //     "event_name": "WithdrawCanceled",
-            //     "canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-            //     "account": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //     "token": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //     "amount": 400000
-            //   },
-            //   {
-            //     "chain":"ethereum:5",
-            //     "event_name": "FundsWithdrawn",
-            //     "canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-            //     "account": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //     "token": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //     "amount": 100000,
-            //     "recipient": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840"
-            //   },
-            // ,
-            //       {
-            //         "chain":"ethereum:5",
-            //         "event_name": "FundsDeposited",
-            //         "canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-            //         "account": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //         "token": "0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a",
-            //         "amount": 500000
-            //       },
-            //       {
-            //         "chain":"ethereum:5",
-            //         "event_name": "FundsDeposited",
-            //         "canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-            //         "account": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-            //         "token": "0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a",
-            //         "amount": 100
-            //       }
-            // mock response
-            let str_body = r#"
-            [
-                {
-                    "chain":"ethereum:5",
-                    "event_name": "FundsDeposited",
-                    "canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-                    "account": "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",
-                    "token": "0x99Cb2B2f007d6Aa21a7d864687110Cdc0573591a",
-                    "amount": 5000000
-                }
-              ]
-            "#;
-            // ========================================= For now we will mock a sample response that we expect from the api ================================ //
             let json_event: Value =
-            serde_json::from_str(str_body).expect("Failed to deserialize JSON");
+                serde_json::from_str(&str_body[..]).expect("Failed to deserialize JSON");
             // Make sure the top-level JSON is an array
             if let Value::Array(events) = json_event {
                 for event in events {
@@ -154,13 +108,14 @@ pub async fn query_logstore_wip() {
                     // send this info over to the remittance canister in order to modify the balances
                     remittance::broadcast_to_subscribers(&vec![parsed_event], dc_canister).await;
                 }
+                // update the value of the query timestamp
+                LAST_TIMESTAMP.with(|counter| counter.store(time() / 1000000, Ordering::SeqCst));
             }
-
         }
         Err((r, m)) => {
             let message =
                 format!("The http_request resulted into error. RejectionCode: {r:?}, Error: {m}");
             panic!("{message}");
         }
-    }
+    };
 }

@@ -28,7 +28,9 @@
 		"@types/node": "^20.3.1",
 		"dotenv": "^16.3.1",
 		"hardhat": "^2.15.0",
+		"hardhat-gas-reporter": "^1.0.8",
 		"solhint": "^3.4.1",
-		"solhint-plugin-prettier": "^0.0.5"
+		"solhint-plugin-prettier": "^0.0.5",
+		"solidity-coverage": "^0.8.1"
 	}
 }
