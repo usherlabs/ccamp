@@ -39,13 +39,13 @@ async fn publish() {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
     let sample_adjust_one = lib::DataModel {
-        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+        token: "0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"
             .to_string()
             .try_into()
             .unwrap(),
-        chain: lib::Chain::Ethereum1,
-        amount: 100,
-        account: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        chain: lib::Chain::Ethereum5,
+        amount: -100,
+        account: "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840"
             .to_string()
             .try_into()
             .unwrap(),
@@ -53,13 +53,13 @@ async fn publish() {
     };
 
     let sampe_adjust_two = lib::DataModel {
-        token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+        token: "0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"
             .to_string()
             .try_into()
             .unwrap(),
-        chain: lib::Chain::Ethereum1,
-        amount: -100,
-        account: "0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432"
+        chain: lib::Chain::Ethereum5,
+        amount: 100,
+        account: "0x1AE26a1F23E2C70729510cdfeC205507675208F2"
             .to_string()
             .try_into()
             .unwrap(),
@@ -71,7 +71,6 @@ async fn publish() {
     SUBSCRIBERS.with(|subscribers| {
         for (k, v) in subscribers.borrow().iter() {
             if v.topic == REMITTANCE_EVENT {
-                // TODO
                 let dc_canister = api::id();
                 let _call_result: Result<(), _> =
                     ic_cdk::notify(*k, "update_remittance", (&bulk_update, dc_canister));

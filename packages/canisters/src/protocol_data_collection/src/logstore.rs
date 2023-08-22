@@ -45,13 +45,13 @@ pub async fn query_logstore() {
     // confirm at least one remittance canister is subscribed to this pdc
     let subscribers_length = crate::SUBSCRIBERS.with(|subscribers| subscribers.borrow().len());
     if subscribers_length == 0 {
-        panic!("NO_SUBSCRIBER")
+        panic!("NO_REMITTANCE_SUBSCRIBED")
     }
     let last_timestamp = get_last_timestamp();
     // update his value to the current timestamp
 
     let url = format!(
-        "https://better-boats-slide.loca.lt/query?from={}",
+        "https://ready-trees-juggle.loca.lt/query?from={}",
         last_timestamp
     );
 

@@ -79,6 +79,15 @@ pub struct DataModel {
     pub account: Wallet,
     pub action: Action,
 }
+impl Display for DataModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "token:{}; chain:{}; amount:{};account:{};action:{:?}",
+            self.token, self.chain, self.amount, self.account, self.action
+        )
+    }
+}
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct Subscriber {

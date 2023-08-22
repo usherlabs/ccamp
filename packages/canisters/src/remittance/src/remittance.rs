@@ -372,6 +372,7 @@ pub fn validate_dc_remittance_data(
                 item.account.clone(),
                 dc_canister.clone(),
             );
+
             if existing_balance.balance < item.amount.abs() as u64 {
                 sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
             };

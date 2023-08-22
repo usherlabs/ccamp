@@ -2,6 +2,7 @@ use candid::Principal;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 
+use core::panic;
 use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicU64};
 use utils::vec_u8_to_string;
 
@@ -223,7 +224,9 @@ async fn remit(
         .balance;
 
         // make sure this user actually has enough funds to withdraw
-        assert!(balance > amount, "REMIT_AMOUNT > AVAILABLE_BALANCE");
+        if amount > balance {
+            panic!("REMIT_AMOUNT:{amount} > AVAILABLE_BALANCE:{balance}")
+        }
 
         // generate a signature for these parameters
         let signature_reply = ethereum::sign_message(&message_hash)
