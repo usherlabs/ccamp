@@ -6,7 +6,8 @@
 	"scripts": {
 		"test": "hardhat test",
 		"build": "hardhat compile",
-		"deploy:hardhat": "hardhat run scripts/deploy.ts --network hardhat"
+		"deploy:hardhat": "hardhat run scripts/deploy-locker.ts --network hardhat",
+		"upgrade:hardhat": "hardhat run scripts/upgrade-locker.ts --network hardhat"
 	},
 	"keywords": [
 		"blockchain",
