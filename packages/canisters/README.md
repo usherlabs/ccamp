@@ -96,6 +96,21 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 **get reciept** -> dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai", 12095196426242356980)'
 
 **get timestamp** -> dfx canister call protocol_data_collection last_queried_timestamp
+
+**get if remittasnce canister is subscribed to pdc, should return true if all is setup well** -> dfx canister call protocol_data_collection is_subscribed '(principal "be2us-64aaa-aaaaa-qaabq-cai")'
+
+**get if remittasnce canister is subscribed to dc, shoudl return true if all is setup well** -> dfx canister call data_collection is_subscribed '(principal "be2us-64aaa-aaaaa-qaabq-cai")'
  
 0xadBBdcdbF9B77720775103dd126346686C1d9011 -> locker on goerli
 0xB24a30A3971e4d9bf771BDc81435c25EA69A445c -> dummy token address on goerli
+
+
+
+<!-- canister management commands -->
+**deposit cycles from the cycles wallet to a canister of choice** -> dfx canister deposit-cycles 100000000000 bd3sg-teaaa-aaaaa-qaaba-cai --all
+<!-- steps in deploying to mainnetwork -->
+<!-- convert icp tokens to cycles -->
+<!-- deploy create cycle wallet -->
+<!-- use cycle wallet to create and top up canisters with cycles -->
+<!-- TODO figure out in production an automated way of topping up cycles -->
+

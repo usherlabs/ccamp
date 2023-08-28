@@ -1,8 +1,8 @@
 use candid::Principal;
-use ic_cdk::print;
-use ic_cdk_macros::{init, post_upgrade, query, update};
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicU64, Ordering};
+
+use ic_cdk::storage;
+use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
+use std::{cell::RefCell, collections::BTreeMap};
 
 mod logstore;
 mod remittance;
@@ -12,22 +12,15 @@ thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
 }
 
-// ----------------------------------- init and upgrade hooks
+// ----------------------------------- init hook ------------------------------------------ //
 #[init]
 async fn init() {
     lib::owner::init_owner();
-    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
-        ic_cdk::spawn(logstore::query_logstore())
-    });
+    // ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
+    //     ic_cdk::spawn(logstore::query_logstore())
+    // });
 }
-
-// upon upgrade of contracts, state is  lost
-// so we need to reinitialize important variables here
-#[post_upgrade]
-async fn upgrade() {
-    init().await;
-}
-// ----------------------------------- init and upgrade hooks
+// ----------------------------------- init hook ------------------------------------------ //
 
 // @dev testing command
 #[query]
@@ -69,3 +62,20 @@ fn subscribe(subscriber: lib::Subscriber) {
 fn is_subscribed(principal: Principal) -> bool {
     SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
 }
+
+
+// --------------------------- upgrade hooks ------------------------- //
+#[pre_upgrade]
+fn pre_upgrade() {
+    let cloned_store: BTreeMap<Principal, lib::Subscriber> =
+        SUBSCRIBERS.with(|store| store.borrow().clone());
+    storage::stable_save((cloned_store,)).unwrap()
+}
+#[post_upgrade]
+async fn post_upgrade() {
+    init().await;
+
+    let (old_store,): (lib::SubscriberStore,) = storage::stable_restore().unwrap();
+    SUBSCRIBERS.with(|store| *store.borrow_mut() = old_store);
+}
+// --------------------------- upgrade hooks ------------------------- //

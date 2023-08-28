@@ -89,6 +89,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     .json();
 
   console.log({ response });
+  // validate the rsponse from logstore, and only update block storage only if we get an appropriate resposnse back from the api
   await storage.set(BLOCK_STORAGE_KEY, lastProcessedBlock.toString());
   return {
     canExec: true,

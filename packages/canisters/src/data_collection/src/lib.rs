@@ -1,17 +1,23 @@
 use candid::Principal;
-use ic_cdk::api;
+use ic_cdk::{api, storage};
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
+    static SUBSCRIBERSS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
 }
 
 // @dev testing command
 #[query]
 fn name() -> String {
     format!("data_collection canister")
+}
+
+#[init]
+async fn init() {
+    lib::owner::init_owner();
 }
 
 // this function is going to be called by the remittance canister
@@ -78,3 +84,18 @@ async fn publish() {
         }
     });
 }
+
+// --------------------------- upgrade hooks ------------------------- //
+#[pre_upgrade]
+fn pre_upgrade() {
+    let cloned_store: lib::dc::SubscriberStore = SUBSCRIBERS.with(|store| store.borrow().clone());
+    storage::stable_save((cloned_store,)).unwrap()
+}
+#[post_upgrade]
+async fn post_upgrade() {
+    init().await;
+
+    let (old_store,): (lib::SubscriberStore,) = storage::stable_restore().unwrap();
+    SUBSCRIBERS.with(|store| *store.borrow_mut() = old_store);
+}
+// --------------------------- upgrade hooks ------------------------- //

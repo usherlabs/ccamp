@@ -1,9 +1,7 @@
 // define all major types and their implementation here
 
-// TODO VALIDATE incoming remittance requests
-// ----- Make sure everyone has valid balances for deductions i.e negative adjustments
-// ----- Make sure the net, adjustment is zero i.e make sure no balance is created nor destroyed,
-// ----- Only moved from one place to the other
+
+
 #![allow(dead_code)]
 use crate::utils;
 use candid::{CandidType, Principal};

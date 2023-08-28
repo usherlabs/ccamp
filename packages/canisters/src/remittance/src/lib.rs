@@ -1,9 +1,9 @@
 use candid::Principal;
-use ic_cdk::caller;
+use ic_cdk::{caller, storage};
 use ic_cdk_macros::*;
 
 use core::panic;
-use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicU64};
+use std::{cell::RefCell, collections::HashMap};
 use utils::vec_u8_to_string;
 
 mod ecdsa;
@@ -13,8 +13,6 @@ mod random;
 mod remittance;
 mod utils;
 use lib;
-
-// TODO research on preserving state of dc and r canisters when upgrade happens
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
@@ -27,8 +25,6 @@ thread_local! {
     static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
 
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
-
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
 }
 
 // ----------------------------------- init and upgrade hooks
@@ -40,10 +36,10 @@ fn init() {
 
 // upon upgrade of contracts, state is  lost
 // so we need to reinitialize important variables here
-#[post_upgrade]
-fn upgrade() {
-    init();
-}
+// #[post_upgrade]
+// fn upgrade() {
+//     init();
+// }
 // ----------------------------------- init and upgrade hooks
 
 // get deployer of contract
@@ -368,59 +364,53 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
     })
 }
 
-// #[update]
-// fn clear_withheld_balance(
-//     token: String,
-//     chain: String,
-//     account: String,
-//     dc_canister: Principal,
-// ) -> remittance::Account {
-//     let chain: lib::Chain = chain.try_into().unwrap();
-//     let token: lib::Wallet = token.try_into().unwrap();
-//     let account: lib::Wallet = account.try_into().unwrap();
+// --------------------------- upgrade hooks ------------------------- //
+#[pre_upgrade]
+fn pre_upgrade() {
+    // clone all important variables
+    let cloned_available_balance_store = REMITTANCE.with(|store| store.borrow().clone());
+    let cloned_witheld_balance_store = WITHHELD_REMITTANCE.with(|store| store.borrow().clone());
+    let cloned_witheld_amounts = WITHHELD_AMOUNTS.with(|store| store.borrow().clone());
+    let cloned_is_pdc_canister = IS_PDC_CANISTER.with(|store| store.borrow().clone());
+    let dc_canisters = DC_CANISTERS.with(|store| store.borrow().clone());
+    let remittance_reciepts_store = REMITTANCE_RECIEPTS.with(|store| store.borrow().clone());
+    // save cloned memory
+    storage::stable_save((
+        cloned_available_balance_store,
+        cloned_witheld_balance_store,
+        cloned_witheld_amounts,
+        cloned_is_pdc_canister,
+        dc_canisters,
+        remittance_reciepts_store,
+    ))
+    .unwrap()
+}
 
-//     let hash_key = (
-//         token.clone(),
-//         chain.clone(),
-//         account.clone(),
-//         dc_canister.clone(),
-//     );
-
-//     // why not use hash key as the key? why redefine
-//     let redeemed_balance = get_withheld_balance(
-//         token.to_string(),
-//         chain.to_string(),
-//         account.to_string(),
-//         dc_canister.clone(),
-//     );
-//     // if this user has some pending withdrawals for these parameters
-//     if redeemed_balance.balance > 0 {
-//         // then for each amount delete the entry/cache from the withheld balance
-//         WITHHELD_AMOUNTS.with(|withheld_amount| {
-//             let mut mut_withheld_amount = withheld_amount.borrow_mut();
-//             mut_withheld_amount
-//                 .get(&hash_key)
-//                 .unwrap()
-//                 .iter()
-//                 .for_each(|amount| {
-//                     WITHHELD_REMITTANCE.with(|withheld_remittance| {
-//                         withheld_remittance.borrow_mut().remove(&(
-//                             token.clone(),
-//                             chain.clone(),
-//                             account.clone(),
-//                             dc_canister.clone(),
-//                             *amount,
-//                         ));
-//                     })
-//                 });
-//             mut_withheld_amount.remove(&hash_key);
-//         });
-//         // add the withheld total back to the available balance
-//         REMITTANCE.with(|remittance| {
-//             if let Some(existing_data) = remittance.borrow_mut().get_mut(&hash_key) {
-//                 existing_data.balance = existing_data.balance + redeemed_balance.balance;
-//             }
-//         });
-//     }
-//     return redeemed_balance;
-// }
+#[post_upgrade]
+async fn post_upgrade() {
+    init();
+    // load the variables from memory
+    let (
+        cloned_available_balance_store,
+        cloned_witheld_balance_store,
+        cloned_witheld_amounts_store,
+        cloned_is_pdc_canister,
+        cloned_dc_canisters,
+        cloned_remittance_reciepts,
+    ): (
+        remittance::AvailableBalanceStore,
+        remittance::WithheldBalanceStore,
+        remittance::WithheldAmountsStore,
+        HashMap<Principal, bool>,
+        Vec<Principal>,
+        remittance::RemittanceRecieptsStore,
+    ) = storage::stable_restore().unwrap();
+    //  restore by reassigning to vairiables
+    REMITTANCE.with(|r| *r.borrow_mut() = cloned_available_balance_store);
+    WITHHELD_REMITTANCE.with(|wr| *wr.borrow_mut() = cloned_witheld_balance_store);
+    WITHHELD_AMOUNTS.with(|wa| *wa.borrow_mut() = cloned_witheld_amounts_store);
+    IS_PDC_CANISTER.with(|ipc| *ipc.borrow_mut() = cloned_is_pdc_canister);
+    DC_CANISTERS.with(|dc| *dc.borrow_mut() = cloned_dc_canisters);
+    REMITTANCE_RECIEPTS.with(|dc| *dc.borrow_mut() = cloned_remittance_reciepts);
+}
+// --------------------------- upgrade hooks ------------------------- //
