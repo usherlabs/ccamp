@@ -1,7 +1,5 @@
 // define all major types and their implementation here
 
-
-
 #![allow(dead_code)]
 use crate::utils;
 use candid::{CandidType, Principal};
@@ -81,6 +79,7 @@ pub type WithheldBalanceStore =
 pub type WithheldAmountsStore =
     HashMap<(lib::Wallet, lib::Chain, lib::Wallet, Principal), Vec<u64>>;
 pub type RemittanceRecieptsStore = HashMap<(Principal, u64), RemittanceReciept>;
+pub type CanisterBalanceStore = HashMap<(lib::Wallet, lib::Chain, Principal), Account>;
 
 // this is equivalent to a function which produces abi.encodePacked(nonce, amount, address)
 pub fn hash_remittance_parameters(
@@ -150,10 +149,23 @@ pub fn get_available_balance(
     available_amount
 }
 
+pub fn get_canister_balance(
+    token: lib::Wallet,
+    chain: lib::Chain,
+    dc_canister: Principal,
+) -> Account {
+    let canister_balance = crate::CANISTER_BALANCE.with(|cb| {
+        let existing_key = (token, chain, dc_canister);
+        cb.borrow().get(&existing_key).cloned().unwrap_or_default()
+    });
+
+    canister_balance
+}
+
 // it essentially uses the mapping (ticker, chain, recipientaddress) => {DataModel}
 // so if an entry exists for a particular combination of (ticker, chain, recipientaddress)
 // then the price is updated, otherwise the entry is created
-pub fn update_balance(new_remittance: lib::DataModel, dc_canister: Principal) {
+pub fn update_balance(new_remittance: &lib::DataModel, dc_canister: Principal) {
     crate::REMITTANCE.with(|remittance| {
         let mut remittance_store = remittance.borrow_mut();
 
@@ -172,6 +184,30 @@ pub fn update_balance(new_remittance: lib::DataModel, dc_canister: Principal) {
                 hash_key,
                 Account {
                     balance: new_remittance.amount as u64,
+                },
+            );
+        }
+    });
+}
+
+pub fn update_canister_balance(
+    token: lib::Wallet,
+    chain: lib::Chain,
+    dc_canister: Principal,
+    amount: i64,
+) {
+    crate::CANISTER_BALANCE.with(|canister_balance| {
+        let mut canister_balance_store = canister_balance.borrow_mut();
+
+        let hash_key = (token.clone(), chain.clone(), dc_canister.clone());
+
+        if let Some(existing_data) = canister_balance_store.get_mut(&hash_key) {
+            existing_data.balance = (existing_data.balance as i64 + amount as i64) as u64;
+        } else {
+            canister_balance_store.insert(
+                hash_key,
+                Account {
+                    balance: amount as u64,
                 },
             );
         }
@@ -375,6 +411,22 @@ pub fn validate_dc_remittance_data(
                 sufficient_balance_error = Err("INSUFFICIENT_USER_BALANCE".to_string());
             };
         });
+    if let Err(_) = sufficient_balance_error {
+        return sufficient_balance_error;
+    }
+    // check for all positive additions that the canister has enough balance to cover it
+    let mut insufficient_canister_balance: Result<(), String> = Ok(());
+    new_remittances
+        .iter()
+        .filter(|&item| item.amount > 0)
+        .for_each(|item| {
+            let existing_balance =
+                get_canister_balance(item.token.clone(), item.chain.clone(), dc_canister.clone());
 
-    sufficient_balance_error
+            if existing_balance.balance < item.amount as u64 {
+                insufficient_canister_balance = Err("INSUFFICIENT_CANISTER_BALANCE".to_string());
+            };
+        });
+
+    insufficient_canister_balance
 }

@@ -16,9 +16,9 @@ thread_local! {
 #[init]
 async fn init() {
     lib::owner::init_owner();
-    // ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
-    //     ic_cdk::spawn(logstore::query_logstore())
-    // });
+    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
+        ic_cdk::spawn(logstore::query_logstore())
+    });
 }
 // ----------------------------------- init hook ------------------------------------------ //
 

@@ -65,6 +65,10 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 <!-- commands -->
 
+**dc canister: bkyz2-fmaaa-aaaaa-qaaaq-cai**
+**pdc canister: bd3sg-teaaa-aaaaa-qaaba-cai**
+**r canister: be2us-64aaa-aaaaa-qaabq-cai**
+
 **delete all canisters** -> dfx canister delete --all -y
 
 **get public key** -> dfx canister call remittance public_key
@@ -81,15 +85,19 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **query remittance canister balance to make sure it gets the data account 2** -> dfx canister call remittance get_available_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
+**query data collection canister balance** -> dfx canister call remittance get_canister_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+
 **query remittance canister withheld balance to make sure it gets the data** -> dfx canister call remittance get_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x1AE26a1F23E2C70729510cdfeC205507675208F2", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**clear witheld balance** -> dfx canister call remittance clear_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**clear witheld balance** -> dfx canister call remittance get_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **confirm withdrawal** -> dfx canister call remittance confirm_withdrawal '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **cancel withdrawal** -> dfx canister call remittance cancel_withdrawal '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **get signature of remittance** -> dfx canister call remittance remit '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",500000,"0xe7f1ca44ae1d6c62ec5873f11be228fdbea1f3beaef802326cba2ffd97df832b1b1d26c3695f857497b65a6800b6c1659b53620e80577b99a8f986372e8d9a4f1c")'
+
+dfx canister call remittance remit '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",50000,"0xff4eef95af92b8928ca676477161efca3f7dafb6c2a802e7b4306fe1905a140b5fc189b0b2118bdd2562d5a3295d092012d8cd61b5c3e37449b951ee4583678e1b")'
 
 **get signature of remittance (account 2)** -> dfx canister call remittance remit '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x1AE26a1F23E2C70729510cdfeC205507675208F2",principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",90,"0xd25402f1528ae77745a3c06159b5511aff573b75542147c686ce762fbfdfa3cf27fe08c21000acc1cbf9c769838dec28e11b555e5b05ab202f8d661941e3fb391b")'
 

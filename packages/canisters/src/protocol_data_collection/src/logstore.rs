@@ -51,7 +51,7 @@ pub async fn query_logstore() {
     // update his value to the current timestamp
 
     let url = format!(
-        "https://ready-trees-juggle.loca.lt/query?from={}",
+        "https://loud-ducks-think.loca.lt/query?from={}",
         last_timestamp
     );
 

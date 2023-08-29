@@ -25,22 +25,16 @@ thread_local! {
     static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
 
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
+    static CANISTER_BALANCE: RefCell<remittance::CanisterBalanceStore> = RefCell::default();
 }
 
-// ----------------------------------- init and upgrade hooks
+// ----------------------------------- init hooks
 #[init]
 fn init() {
     lib::owner::init_owner();
     random::init_ic_rand();
 }
-
-// upon upgrade of contracts, state is  lost
-// so we need to reinitialize important variables here
-// #[post_upgrade]
-// fn upgrade() {
-//     init();
-// }
-// ----------------------------------- init and upgrade hooks
+// ----------------------------------- init hooks
 
 // get deployer of contract
 #[query]
@@ -107,11 +101,18 @@ fn update_remittance(
 
         let _: Result<(), String> = match new_remittance.action.clone() {
             lib::Action::Adjust => {
-                remittance::update_balance(new_remittance, dc_canister);
+                remittance::update_balance(&new_remittance, dc_canister);
                 Ok(())
             }
             lib::Action::Deposit => {
-                remittance::update_balance(new_remittance, dc_canister);
+                remittance::update_balance(&new_remittance, dc_canister);
+                // upon deposit, we increment the canister's balance of that token
+                remittance::update_canister_balance(
+                    new_remittance.token,
+                    new_remittance.chain,
+                    dc_canister,
+                    new_remittance.amount,
+                );
                 Ok(())
             }
             lib::Action::Withdraw => {
@@ -119,8 +120,15 @@ fn update_remittance(
                     new_remittance.token.to_string(),
                     new_remittance.chain.to_string(),
                     new_remittance.account.to_string(),
-                    new_remittance.amount as u64,
+                    new_remittance.amount.abs() as u64,
                     dc_canister,
+                );
+                // upon withdrawal we can remove the withdrawn amount from the canister's pool for that amount
+                remittance::update_canister_balance(
+                    new_remittance.token,
+                    new_remittance.chain,
+                    dc_canister,
+                    -new_remittance.amount,
                 );
                 Ok(())
             }
@@ -129,7 +137,7 @@ fn update_remittance(
                     new_remittance.token.to_string(),
                     new_remittance.chain.to_string(),
                     new_remittance.account.to_string(),
-                    new_remittance.amount as u64,
+                    new_remittance.amount.abs() as u64,
                     dc_canister,
                 );
                 Ok(())
@@ -292,6 +300,22 @@ fn get_available_balance(
 
     // get available balance for this key
     let amount = remittance::get_available_balance(token, chain, account, dc_canister);
+
+    amount
+}
+
+#[query]
+fn get_canister_balance(
+    token: String,
+    chain: String,
+    dc_canister: Principal,
+) -> remittance::Account {
+    let chain: lib::Chain = chain.try_into().unwrap();
+    let token: lib::Wallet = token.try_into().unwrap();
+    // validate the address and the chain
+
+    // get available balance for this key
+    let amount = remittance::get_canister_balance(token, chain, dc_canister);
 
     amount
 }
