@@ -10,7 +10,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::remittance;
 
 thread_local! {
-    pub static LAST_TIMESTAMP: AtomicU64 = AtomicU64::new(0);
+    // TODO back up this variable as well
+    pub static LAST_TIMESTAMP: AtomicU64 = AtomicU64::new(1693383017218);
 }
 
 #[derive(Deserialize, Debug)]
@@ -51,7 +52,7 @@ pub async fn query_logstore() {
     // update his value to the current timestamp
 
     let url = format!(
-        "https://loud-ducks-think.loca.lt/query?from={}",
+        "https://rich-suns-tan.loca.lt/query?from={}",
         last_timestamp
     );
 

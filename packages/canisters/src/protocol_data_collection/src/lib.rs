@@ -2,7 +2,7 @@ use candid::Principal;
 
 use ic_cdk::storage;
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
-use std::{cell::RefCell, collections::BTreeMap};
+use std::{cell::RefCell, collections::BTreeMap, sync::atomic::Ordering};
 
 mod logstore;
 mod remittance;
@@ -63,19 +63,21 @@ fn is_subscribed(principal: Principal) -> bool {
     SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
 }
 
-
 // --------------------------- upgrade hooks ------------------------- //
 #[pre_upgrade]
 fn pre_upgrade() {
-    let cloned_store: BTreeMap<Principal, lib::Subscriber> =
-        SUBSCRIBERS.with(|store| store.borrow().clone());
-    storage::stable_save((cloned_store,)).unwrap()
+    let cloned_store = SUBSCRIBERS.with(|store| store.borrow().clone());
+    let cloned_timestamp = logstore::LAST_TIMESTAMP.with(|ts| ts.load(Ordering::Relaxed));
+    storage::stable_save((cloned_store, cloned_timestamp)).unwrap()
 }
 #[post_upgrade]
 async fn post_upgrade() {
     init().await;
 
-    let (old_store,): (lib::SubscriberStore,) = storage::stable_restore().unwrap();
+    let (old_store, old_timestamp): (lib::SubscriberStore, u64) =
+        storage::stable_restore().unwrap();
+
     SUBSCRIBERS.with(|store| *store.borrow_mut() = old_store);
+    logstore::LAST_TIMESTAMP.with(|counter| counter.store(old_timestamp, Ordering::SeqCst));
 }
 // --------------------------- upgrade hooks ------------------------- //

@@ -6,7 +6,6 @@ use std::cell::RefCell;
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
-    static SUBSCRIBERSS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
 }
 
 // @dev testing command
