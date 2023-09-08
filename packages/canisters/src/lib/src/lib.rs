@@ -142,4 +142,25 @@ impl Chain {
     }
 }
 
+#[derive(Deserialize, Debug)]
+pub struct Event {
+    pub event_name: String,
+    pub canister_id: String,
+    pub account: String,
+    pub amount: i64,
+    pub chain: String,
+    pub token: String,
+}
+
+impl Into<DataModel> for Event {
+    fn into(self) -> DataModel {
+        DataModel {
+            token: self.token.try_into().unwrap(),
+            chain: self.chain.try_into().unwrap(),
+            amount: self.amount as i64,
+            account: self.account.try_into().unwrap(),
+            action: self.event_name.try_into().unwrap(),
+        }
+    }
+}
 pub type SubscriberStore = BTreeMap<Principal, Subscriber>;

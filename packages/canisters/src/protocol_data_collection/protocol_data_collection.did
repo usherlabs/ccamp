@@ -6,11 +6,12 @@ type Subscriber = record {
 };
 
 service : {
-	"owner" : () -> (text) query;
-	"name" : () -> (text) query;
-	"last_queried_timestamp" : () -> (nat64) query;
-	"is_subscribed" : (canister : principal) -> (bool) query;
+	"owner" : () -> (owner_principal : text) query;
+	"name" : () -> (canister_name : text) query;
+	"last_queried_timestamp" : () -> (last_timestamp : nat64) query;
+	"is_subscribed" : (canister_principal : principal) -> (is_subscribed : bool) query;
 	"subscribe" : (subscriber : Subscriber) -> ();
-	"publish" : () -> ();
-	"update_data": () -> ();
+	"update_data" : () -> ();
+	"poll_logstore" : () -> ();
+	"manual_publish" : (array_of_json_events : text) -> ();
 };

@@ -24,12 +24,12 @@ type RecieptReply = record {
 	amount : nat64;
 	account : text;
 	timestamp : nat64;
-}
+};
 
 service : {
-	"owner" : () -> (text) query;
-	"name" : () -> (text) query;
-	"public_key" : () -> (variant { Ok : record { sec1_pk : text; etherum_pk : text }; Err : text });
+	"owner" : () -> (owner_principal : text) query;
+	"name" : () -> (canister_name : text) query;
+	"public_key" : () -> (record { sec1_pk : text; etherum_pk : text });
 
 	"subscribe_to_dc" : (dc_canister_id : principal) -> ();
 	"subscribe_to_pdc" : (pdc_canister_id : principal) -> ();

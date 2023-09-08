@@ -237,7 +237,7 @@ pub fn confirm_withdrawal(
         let mut mut_witheld_amounts = witheld_amounts.borrow_mut();
         let unwithdrawn_amounts = mut_witheld_amounts
             .get(&hash_key)
-            .expect("AMOUNT_NOT_WITHELD")
+            .expect("WITHDRAWAL_CONFIRMATION_ERROR:AMOUNT_NOT_WITHELD")
             .into_iter()
             .filter(|&amount_to_withdraw| *amount_to_withdraw != amount_withdrawn)
             .cloned()
@@ -299,7 +299,7 @@ pub fn cancel_withdrawal(
         let mut mut_witheld_amounts = witheld_amounts.borrow_mut();
         let unwithdrawn_amounts = mut_witheld_amounts
             .get(&hash_key)
-            .expect("AMOUNT_NOT_WITHELD")
+            .expect("CANCEL_WITHDRAW_ERROR:AMOUNT_NOT_WITHELD")
             .into_iter()
             .filter(|&amount_to_withdraw| *amount_to_withdraw != amount_canceled)
             .cloned()

@@ -6,9 +6,9 @@ type Subscriber = record {
 };
 
 service : {
-	"owner" : () -> (text) query;
+	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (text) query;
 	"subscribe" : (subscriber : Subscriber) -> ();
 	"is_subscribed" : (canister : principal) -> (bool) query;
-	"publish" : () -> ();
+	"manual_publish" : (array_of_json_events : text) -> ();
 };

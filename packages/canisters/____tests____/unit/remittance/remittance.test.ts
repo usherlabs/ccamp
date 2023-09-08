@@ -15,7 +15,7 @@ describe('Remittance Canister', () => {
 		const response = await canister.public_key();
 		if (!('Ok' in response)) return;
 
-		const { sec1_pk: sec1PK, etherum_pk: ethereumPK } = response.Ok;
+		const { sec1_pk: sec1PK, etherum_pk: ethereumPK } = response;
 		const computedEthereumPK = utils.computeAddress(`0x${sec1PK}`);
 
 		expect(ethereumPK.toLowerCase()).toEqual(computedEthereumPK.toLowerCase());

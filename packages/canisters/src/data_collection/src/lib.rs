@@ -1,9 +1,10 @@
 use candid::Principal;
-use ic_cdk::{api, storage};
+use ic_cdk::storage;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
 
-const REMITTANCE_EVENT: &str = "REMITTANCE";
+mod remittance;
+
 thread_local! {
     static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
 }
@@ -40,48 +41,10 @@ fn is_subscribed(principal: Principal) -> bool {
 // which would be the remittance model
 // so when we have some new data, we would publish it to the remittance model
 #[update]
-async fn publish() {
+async fn manual_publish(json_data: String) {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
-    let sample_adjust_one = lib::DataModel {
-        token: "0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        chain: lib::Chain::Ethereum5,
-        amount: -100,
-        account: "0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        action: lib::Action::Adjust,
-    };
-
-    let sampe_adjust_two = lib::DataModel {
-        token: "0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        chain: lib::Chain::Ethereum5,
-        amount: 100,
-        account: "0x1AE26a1F23E2C70729510cdfeC205507675208F2"
-            .to_string()
-            .try_into()
-            .unwrap(),
-        action: lib::Action::Adjust,
-    };
-
-    let bulk_update = vec![sample_adjust_one, sampe_adjust_two];
-
-    SUBSCRIBERS.with(|subscribers| {
-        for (k, v) in subscribers.borrow().iter() {
-            if v.topic == REMITTANCE_EVENT {
-                let dc_canister = api::id();
-                let _call_result: Result<(), _> =
-                    ic_cdk::notify(*k, "update_remittance", (&bulk_update, dc_canister));
-            }
-        }
-    });
+    let _ = remittance::publish_json(json_data).await;
 }
 
 // --------------------------- upgrade hooks ------------------------- //

@@ -274,7 +274,7 @@ async fn remit(
         });
         // create response object
         response = remittance::RemittanceReply {
-            hash: vec_u8_to_string(&message_hash),
+            hash: format!("0x{}", vec_u8_to_string(&message_hash)),
             signature: signature_string.clone(),
             nonce,
             amount,
@@ -363,7 +363,7 @@ async fn get_reciept(dc_canister: Principal, nonce: u64) -> remittance::Remittan
 }
 
 #[update]
-async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
+async fn public_key() -> ecdsa::PublicKeyReply {
     let request = ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
@@ -377,15 +377,16 @@ async fn public_key() -> Result<ecdsa::PublicKeyReply, String> {
         (request,),
     )
     .await
-    .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))?;
+    .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))
+    .unwrap();
 
     let address =
         ethereum::get_address_from_public_key(res.public_key.clone()).expect("INVALID_PUBLIC_KEY");
 
-    Ok(ecdsa::PublicKeyReply {
+    ecdsa::PublicKeyReply {
         sec1_pk: hex::encode(res.public_key),
         etherum_pk: address,
-    })
+    }
 }
 
 // --------------------------- upgrade hooks ------------------------- //

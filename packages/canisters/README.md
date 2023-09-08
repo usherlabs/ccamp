@@ -73,6 +73,10 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **get public key** -> dfx canister call remittance public_key
 
+**start polling job** -> dfx canister call protocol_data_collection poll_logstore
+
+**manual publish json** -> dfx canister call protocol_data_collection manual_publish '[{"event_name":"FundsDeposited","canister_id":"bkyz2-fmaaa-aaaaa-qaaaq-cai","account":"0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840","amount":100000,"chain":"ethereum:5","token":"0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"}]'
+
 **subscribe remittance canister to data collection pubsub** -> dfx canister call remittance subscribe_to_dc '(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **subscribe remittance canister to protocol-data collection pubsub** -> dfx canister call remittance subscribe_to_pdc '(principal "bd3sg-teaaa-aaaaa-qaaba-cai")'
@@ -89,7 +93,7 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **query remittance canister withheld balance to make sure it gets the data** -> dfx canister call remittance get_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
-**clear witheld balance** -> dfx canister call remittance get_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
+**get witheld balance** -> dfx canister call remittance get_withheld_balance '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
 **confirm withdrawal** -> dfx canister call remittance confirm_withdrawal '("0xB24a30A3971e4d9bf771BDc81435c25EA69A445c","ethereum:5","0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840", 400000, principal "bkyz2-fmaaa-aaaaa-qaaaq-cai")'
 
