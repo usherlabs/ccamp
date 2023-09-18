@@ -33,7 +33,7 @@ describe('PUB/SUB', () => {
 	let CANISTER_PUBLIC_KEY: string;
 	let NONCE: bigint;
 
-	async function getAvailableBalance(account:string) {
+	async function getAvailableBalance(account: string) {
 		// confirm balance
 		const { balance: availableBalance } =
 			await R_CANISTER.get_available_balance(
@@ -154,9 +154,11 @@ describe('PUB/SUB', () => {
 
 		// validate that the balances are as they should be
 		expect(postWitheldBalance.toString()).toEqual('0'); //make sure the witheld balance is now 0
-		expect(preAvailableBalance).toEqual(postAvailableBalance); // confirm both of the available balances are the same before and after withdrawal confirmation
-		expect(preAvailableBalance).toEqual(
-			initialAvailableBalance - BigInt(withdrawalAmount),
+		expect(preAvailableBalance.toString()).toEqual(
+			postAvailableBalance.toString(),
+		); // confirm both of the available balances are the same before and after withdrawal confirmation
+		expect(preAvailableBalance.toString()).toEqual(
+			(initialAvailableBalance - BigInt(withdrawalAmount)).toString(),
 		); //validate the amount available left is equal to the initial amount minus the withdrawn amount
 		expect(preWitheldBalance.toString()).toEqual(`${withdrawalAmount}`);
 	});
@@ -184,10 +186,10 @@ describe('PUB/SUB', () => {
 
 		// validate that the balances are as they should be
 		expect(postWitheldBalance.toString()).toEqual('0'); //make sure the witheld balance is now 0
-		expect(postAvailableBalance).toEqual(
-			preWitheldBalance + preAvailableBalance,
+		expect(postAvailableBalance.toString()).toEqual(
+			(preWitheldBalance + preAvailableBalance).toString(),
 		);
-		expect(initialAvailableBalance).toEqual(postAvailableBalance);
+		expect(initialAvailableBalance.toString()).toEqual(postAvailableBalance.toString());
 	});
 
 	it('Can get the reciept of a succesfull withdrawal', async () => {
@@ -214,11 +216,11 @@ describe('PUB/SUB', () => {
 		const availableBalanceActorOnePost = await getAvailableBalance(ACTOR_ONE);
 		const availableBalanceActorTwoPost = await getAvailableBalance(ACTOR_TWO);
 
-		expect(availableBalanceActorOnePost).toEqual(
-			availableBalanceActorOnePre - BigInt(ADJUST_AMOUNT),
+		expect(availableBalanceActorOnePost.toString()).toEqual(
+			(availableBalanceActorOnePre - BigInt(ADJUST_AMOUNT)).toString(),
 		);
-		expect(availableBalanceActorTwoPost).toEqual(
-			availableBalanceActorTwoPre + BigInt(ADJUST_AMOUNT),
+		expect(availableBalanceActorTwoPost.toString()).toEqual(
+			(availableBalanceActorTwoPre + BigInt(ADJUST_AMOUNT)).toString(),
 		);
 	});
 
@@ -233,7 +235,7 @@ describe('PUB/SUB', () => {
 		const availableBalanceActorTwoPost = await getAvailableBalance(ACTOR_TWO);
 
 		// both should be the same since there would be no balance updates
-		expect(availableBalanceActorOnePost).toEqual(availableBalanceActorOnePre);
-		expect(availableBalanceActorTwoPost).toEqual(availableBalanceActorTwoPre);
+		expect(availableBalanceActorOnePost.toString()).toEqual(availableBalanceActorOnePre.toString());
+		expect(availableBalanceActorTwoPost.toString()).toEqual(availableBalanceActorTwoPre.toString());
 	});
 });
