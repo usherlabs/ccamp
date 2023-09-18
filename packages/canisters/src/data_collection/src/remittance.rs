@@ -1,8 +1,7 @@
-use ic_cdk::api;
+use ic_cdk::api::{self, call::RejectionCode};
 use lib::Event;
 use serde_json::Value;
 
-const REMITTANCE_EVENT: &str = "REMITTANCE";
 
 pub async fn publish_json(json_data: String) -> Result<(), String> {
     // the string provided should be an array of events
@@ -35,7 +34,7 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
             parsed_events.push(parsed_event);
         }
         // TODO: use the response from the broadcast to return a response of ok or otherwise
-        broadcast_to_subscribers(&parsed_events).await;
+        let _ = broadcast_to_subscribers(&parsed_events).await;
         Ok(())
     } else {
         Err("ERROR_PARSING_EVENT_INTO_DATAMODEL".to_string())
@@ -47,14 +46,6 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
 // we would use this method to publish data to the subscriber
 // which would be the remittance model
 // so when we have some new data, we would publish it to the remittance model
-pub async fn broadcast_to_subscribers(events: &Vec<lib::DataModel>) {
-    crate::SUBSCRIBERS.with(|subscribers| {
-        for (k, v) in subscribers.borrow().iter() {
-            if v.topic == REMITTANCE_EVENT {
-                let dc_canister = api::id();
-                let _call_result: Result<(), _> =
-                    ic_cdk::notify(*k, "update_remittance", (&events, dc_canister));
-            }
-        }
-    });
+pub async fn broadcast_to_subscribers(events: &Vec<lib::DataModel>) -> Result<(), RejectionCode> {
+    lib::dc::update_remittance_canister(events)
 }

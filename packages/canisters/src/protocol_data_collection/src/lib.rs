@@ -2,6 +2,7 @@ use candid::Principal;
 
 use ic_cdk::storage;
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
+use lib::RemittanceSubscriber;
 use std::{cell::RefCell, sync::atomic::Ordering};
 
 mod logstore;
@@ -9,7 +10,7 @@ mod remittance;
 
 const TIMER_INTERVAL_SEC: u64 = 60;
 thread_local! {
-    static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
+    static REMITTANCE_CANISTER: RefCell<Option<lib::RemittanceSubscriber>> = RefCell::default();
 }
 
 // ----------------------------------- init hook ------------------------------------------ //
@@ -22,7 +23,7 @@ async fn init() {
 // @dev testing command
 #[query]
 fn name() -> String {
-    format!("data_collection canister")
+    format!("protocol_data_collection canister")
 }
 
 // get deployer of contract
@@ -31,16 +32,77 @@ fn owner() -> String {
     lib::owner::get_owner()
 }
 
-// fect dummy var to confirm timer is working
+
 #[query]
 fn last_queried_timestamp() -> u64 {
     logstore::get_last_timestamp()
 }
 
+#[query]
+fn get_query_url() -> String {
+    logstore::get_query_url()
+}
+
+#[query]
+fn get_query_token() -> String {
+    lib::owner::only_owner();
+
+    logstore::get_query_token()
+}
+
+#[update]
+pub fn set_last_timestamp(last_timestamp: u64) {
+    lib::owner::only_owner();
+
+    logstore::set_last_timestamp(last_timestamp);
+}
+
+#[update]
+pub fn set_query_url(query_url: String) {
+    lib::owner::only_owner();
+
+    logstore::set_query_url(query_url);
+}
+
+#[update]
+pub fn set_query_token(query_token: String) {
+    lib::owner::only_owner();
+
+    logstore::set_query_token(query_token);
+}
+
 #[update]
 pub async fn update_data() {
-    lib::owner::only_owner();
+    // validators
+    logstore::is_initialised();
+    // validators
+
     logstore::query_logstore().await;
+}
+
+#[update]
+pub fn initialise_logstore(last_timestamp: u64, query_url: String, query_token: String) {
+    lib::owner::only_owner();
+    logstore::initialise_logstore(last_timestamp, query_url, query_token);
+}
+
+#[update]
+pub async fn set_remittance_canister(remittance_principal: Principal) {
+    lib::owner::only_owner();
+    REMITTANCE_CANISTER.with(|rc| {
+        let _ = rc.borrow_mut().insert(lib::RemittanceSubscriber {
+            canister_principal: remittance_principal,
+            subscribed: false,
+        });
+    })
+}
+
+#[query]
+pub fn get_remittance_canister() -> RemittanceSubscriber {
+    // confirm at least one remittance canister is subscribed to this pdc
+    crate::REMITTANCE_CANISTER
+        .with(|rc| rc.borrow().clone())
+        .expect("REMITTANCE_CANISTER_NOT_INITIALIZED")
 }
 
 // start job to poll
@@ -48,10 +110,15 @@ pub async fn update_data() {
 #[update]
 pub async fn poll_logstore() {
     // confirm at least one remittance canister is subscribed to this pdc
-    let subscribers_length = SUBSCRIBERS.with(|subscribers| subscribers.borrow().len());
-    if subscribers_length == 0 {
-        panic!("NO_REMITTANCE_SUBSCRIBED")
+    let whitelisted_remittance_canister = get_remittance_canister();
+
+    if !whitelisted_remittance_canister.subscribed {
+        panic!("REMITTANCE_CANISTER_NOT_INITIALIZED")
     }
+
+    // confirm logstore is initialised
+    logstore::is_initialised();
+
     ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
         ic_cdk::spawn(logstore::query_logstore())
     });
@@ -60,12 +127,23 @@ pub async fn poll_logstore() {
 // this function is going to be called by the remittance canister
 // so it can recieve "publish" events from this canister
 #[update]
-fn subscribe(subscriber: lib::Subscriber) {
+fn subscribe() {
+    // verify if this remittance canister has been whitelisted
+    // set the subscribed value to true if its the same, otherwise panic
     let subscriber_principal_id = ic_cdk::caller();
-    SUBSCRIBERS.with(|subscribers| {
-        subscribers
-            .borrow_mut()
-            .insert(subscriber_principal_id, subscriber);
+    let whitelisted_remittance_canister = REMITTANCE_CANISTER
+        .with(|rc| rc.borrow().clone())
+        .expect("REMITTANCE_CANISTER_NOT_INITIALIZED");
+
+    if whitelisted_remittance_canister.canister_principal != subscriber_principal_id {
+        panic!("REMITTANCE_CANISTER_NOT_WHITELISTED")
+    };
+
+    REMITTANCE_CANISTER.with(|rc| {
+        let _ = rc.borrow_mut().insert(lib::RemittanceSubscriber {
+            canister_principal: subscriber_principal_id,
+            subscribed: true,
+        });
     });
 }
 
@@ -77,24 +155,40 @@ async fn manual_publish(json_data: String) {
 }
 
 #[query]
-fn is_subscribed(principal: Principal) -> bool {
-    SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
+fn is_subscribed(canister_principal: Principal) -> bool {
+    let whitelisted_remittance_canister = get_remittance_canister();
+
+    return whitelisted_remittance_canister.canister_principal == canister_principal && whitelisted_remittance_canister.subscribed;
 }
 
 // --------------------------- upgrade hooks ------------------------- //
 #[pre_upgrade]
 fn pre_upgrade() {
-    let cloned_store = SUBSCRIBERS.with(|store| store.borrow().clone());
+    let cloned_store = REMITTANCE_CANISTER.with(|rc| rc.borrow().clone());
     let cloned_timestamp = logstore::LAST_TIMESTAMP.with(|ts| ts.load(Ordering::Relaxed));
-    storage::stable_save((cloned_store, cloned_timestamp)).unwrap()
+    let cloned_query_url = logstore::get_query_url();
+    let cloned_query_token = logstore::get_query_token();
+    storage::stable_save((
+        cloned_store,
+        cloned_timestamp,
+        cloned_query_url,
+        cloned_query_token,
+    ))
+    .unwrap()
 }
 #[post_upgrade]
 async fn post_upgrade() {
-    let (old_store, old_timestamp): (lib::SubscriberStore, u64) =
-        storage::stable_restore().unwrap();
+    let (old_store, old_timestamp, old_query_url, old_query_token): (
+        Option<lib::RemittanceSubscriber>,
+        u64,
+        String,
+        String,
+    ) = storage::stable_restore().unwrap();
 
-    SUBSCRIBERS.with(|store| *store.borrow_mut() = old_store);
-    logstore::LAST_TIMESTAMP.with(|counter| counter.store(old_timestamp, Ordering::SeqCst));
+    REMITTANCE_CANISTER.with(|store| *store.borrow_mut() = old_store);
+    logstore::LAST_TIMESTAMP.with(|ts| ts.store(old_timestamp, Ordering::SeqCst));
+    logstore::QUERY_TOKEN.with(|token| *token.borrow_mut() = Some(old_query_token));
+    logstore::QUERY_URL.with(|url| *url.borrow_mut() = Some(old_query_url));
 
     init().await;
 }

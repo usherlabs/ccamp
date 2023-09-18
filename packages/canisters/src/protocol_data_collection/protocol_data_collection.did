@@ -1,17 +1,28 @@
 type Counter = record {
 	value : nat64;
 };
-type Subscriber = record {
-	topic : text;
+
+type RemittanceCanister = record {
+	canister_principal : principal;
+	subscribed : bool;
 };
 
 service : {
 	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (canister_name : text) query;
+	"get_query_token" : () -> (query_token : text) query;
+	"get_query_url" : () -> (query_url : text) query;
 	"last_queried_timestamp" : () -> (last_timestamp : nat64) query;
 	"is_subscribed" : (canister_principal : principal) -> (is_subscribed : bool) query;
-	"subscribe" : (subscriber : Subscriber) -> ();
+	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister) query;
+
+	"set_last_timestamp" : (last_timestamp : nat64) -> ();
+	"set_query_url" : (query_url : text) -> ();
+	"set_query_token" : (query_token : text) -> ();
+	"initialise_logstore" : (last_timestamp : nat64, query_url : text, query_token : text) -> ();
+	"subscribe" : () -> ();
 	"update_data" : () -> ();
 	"poll_logstore" : () -> ();
 	"manual_publish" : (array_of_json_events : text) -> ();
+	"set_remittance_canister" : (canister_principal : principal) -> ();
 };

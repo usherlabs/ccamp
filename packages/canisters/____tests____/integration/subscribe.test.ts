@@ -12,6 +12,7 @@ describe('PUB/SUB', () => {
 		const { canister: rCanister, id: rCanisterId } = getRemittanceCanister();
 
 		// use the remittance canister to subscribe to the DC canister
+		await dcCanister.set_remittance_canister(Principal.from(rCanisterId));
 		await rCanister.subscribe_to_dc(Principal.from(dcCanisterId));
 		// check from the dc canister if the subscription was succesfull
 		const response = await dcCanister.is_subscribed(
@@ -26,6 +27,7 @@ describe('PUB/SUB', () => {
 		const { canister: rCanister, id: rCanisterId } = getRemittanceCanister();
 
 		// use the remittance canister to subscribe to the DC canister
+		await pdcCanister.set_remittance_canister(Principal.from(rCanisterId));
 		await rCanister.subscribe_to_pdc(Principal.from(pdcCanisterId));
 		// check from the dc canister if the subscription was succesfull
 		const response = await pdcCanister.is_subscribed(

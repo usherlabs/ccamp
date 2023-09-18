@@ -1,9 +1,7 @@
 use candid::Principal;
+use ic_cdk::api::call::RejectionCode;
 use lib::Event;
 use serde_json::Value;
-
-
-pub const REMITTANCE_EVENT: &str = "REMITTANCE";
 
 pub async fn publish_json(json_data: String) -> Result<(), String> {
     // the string provided should be an array of events
@@ -33,7 +31,7 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
             let parsed_event: lib::DataModel = json_event.into();
             // send this info over to the remittance canister in order to modify the balances
             // TODO: use the response from the broadcast to return a response
-            broadcast_to_subscribers(&vec![parsed_event], dc_canister).await;
+            let _ = broadcast_to_subscribers(&vec![parsed_event], dc_canister);
         }
         Ok(())
     } else {
@@ -46,13 +44,20 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
 // we would use this method to publish data to the subscriber
 // which would be the remittance model
 // so when we have some new data, we would publish it to the remittance model
-pub async fn broadcast_to_subscribers(events: &Vec<lib::DataModel>, dc_canister: Principal) {
-    crate::SUBSCRIBERS.with(|subscribers| {
-        for (k, v) in subscribers.borrow().iter() {
-            if v.topic == REMITTANCE_EVENT {
-                let _call_result: Result<(), _> =
-                    ic_cdk::notify(*k, "update_remittance", (&events, dc_canister));
-            }
-        }
-    });
+pub fn broadcast_to_subscribers(
+    events: &Vec<lib::DataModel>,
+    dc_canister: Principal,
+) -> Result<(), RejectionCode> {
+    let whitelisted_remittance_canister = crate::get_remittance_canister();
+    if !whitelisted_remittance_canister.subscribed {
+        panic!("REMITTANCE_CANISTER_NOT_INITIALIZED")
+    }
+
+    let remittance_response: Result<(), RejectionCode> = ic_cdk::notify(
+        whitelisted_remittance_canister.canister_principal,
+        "update_remittance",
+        (&events, dc_canister),
+    );
+
+    remittance_response
 }

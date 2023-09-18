@@ -62,7 +62,11 @@ describe('PUB/SUB', () => {
 		// fetch all the canisters
 		const { canister: dcCanister, id: dcCanisterId } = getDCCanister();
 		const { canister: pdcCanister, id: pdcCanisterId } = getPDCCanister();
-		const { canister: rCanister } = getRemittanceCanister();
+		const { canister: rCanister, id: rCanisterId } = getRemittanceCanister();
+
+		// register teh remittance canister in both dc and pdc
+		await dcCanister.set_remittance_canister(Principal.from(rCanisterId));
+		await pdcCanister.set_remittance_canister(Principal.from(rCanisterId));
 
 		// subscribe to the dc and pdc canister from the remittance canister
 		await rCanister.subscribe_to_dc(Principal.from(dcCanisterId));

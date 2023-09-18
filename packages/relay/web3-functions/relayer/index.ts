@@ -5,17 +5,17 @@ import {
 } from "@gelatonetwork/web3-functions-sdk";
 import contractAddresses from "@ccamp/contracts/address.json";
 import { abi as LockerABI } from "@ccamp/contracts/artifacts/contracts/Locker.sol/Locker.json";
-import { BLOCK_STORAGE_KEY, START_BLOCK_NUM } from "./utils/constants";
-import { mapEvent } from "./utils/functions";
+import { BLOCK_STORAGE_KEY } from "./utils/constants";
+import { mapEvent, publishEvent } from "./utils/functions";
 import ky from "ky";
 
 const MAX_RANGE = 100; // limit range of events to comply with rpc providers
 const MAX_REQUESTS = 9; // limit number of requests on every execution to avoid hitting timeout
-const PUBLISH_URL = "http://localhost:3000/publish";
 
 Web3Function.onRun(async (context: Web3FunctionContext) => {
   const { userArgs, storage, multiChainProvider, secrets } = context;
-  const { startBlock: defaultStartBlock, streamId } = userArgs;
+  const { startBlock: defaultStartBlock, publisherURLWithStream } = userArgs;
+  const bearerToken = await secrets.get("BEARER_TOKEN");
 
   // get the details about the contract
   const provider = multiChainProvider.default();
@@ -29,12 +29,11 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
   let lastProcessedBlock = parseInt(
     (await storage.get(BLOCK_STORAGE_KEY)) ?? `${defaultStartBlock}`
   );
+  const initialBlock = lastProcessedBlock;
   console.log(`Last processed block: ${lastProcessedBlock}`);
-
   // fetch the current block
   const currentBlock = (await provider.getBlockNumber()) - 1;
   console.log(`Current block: ${currentBlock}`);
-
   // Fetch recent logs in range of 100 blocks
   const filter = [
     lockerContract.filters.FundsDeposited(),
@@ -42,6 +41,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     lockerContract.filters.WithdrawCanceled(),
   ] as EventFilter;
 
+  // make the requests and avoid hitting api rate limit
   let nbRequests = 0;
   let totalEvents: ethers.Event[] = [];
   while (lastProcessedBlock < currentBlock && nbRequests < MAX_REQUESTS) {
@@ -66,33 +66,46 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
       };
     }
   }
+  // make the requests and avoid hitting api rate limit
 
-  // push the events to the predefied stream in logstore
+  // Parse the events into a more appriate form to be broadcasted
   const parsedEvent = totalEvents.map(mapEvent);
+  console.log({ parsedEvent });
   console.log(
-    `${parsedEvent.length} events were fetched in total from block:${lastProcessedBlock} to block:${lastProcessedBlock}  `
+    `${parsedEvent.length} events were fetched in total from block:${initialBlock} to block:${lastProcessedBlock}  `
   );
-
   if (parsedEvent.length === 0) {
     return {
       canExec: false,
       message: `No new event found`,
     };
   }
+  // Parse the events into a more appriate form to be broadcasted
 
-  console.log({ parsedEvent });
+  // iterate through and publish each event
+  let publisherError = false;
+  for await (const singleEvent of parsedEvent) {
+    const publishSuccess: Boolean = await publishEvent(
+      singleEvent,
+      String(publisherURLWithStream),
+      String(bearerToken)
+    );
+    // update the last stored key to the last published event if succesfull,
+    if (publishSuccess) {
+      await storage.set(BLOCK_STORAGE_KEY, singleEvent.blockNumber.toString());
+    } else {
+      // otherwise break because we assume the publisher is faulty
+      publisherError = false;
+      break;
+    }
+    // iterate through and publish each event
+  }
 
-  const response = await ky
-    .post(PUBLISH_URL, {
-      json: parsedEvent,
-    })
-    .json();
-
-  console.log({ response });
-  // validate the rsponse from logstore, and only update block storage only if we get an appropriate resposnse back from the api
-  await storage.set(BLOCK_STORAGE_KEY, lastProcessedBlock.toString());
+  // validate the response from logstore, and only update block storage only if we get an appropriate resposnse back from the api
   return {
-    canExec: true,
-    callData: [],
+    canExec: false,
+    message: publisherError
+      ? "Publisher error"
+      : `Succesfully published events from ${initialBlock} at ${new Date()}`,
   };
 });

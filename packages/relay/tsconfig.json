@@ -7,8 +7,10 @@
     "skipLibCheck": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "typeRoots": ["./node_modules/@types"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "typeRoots": [
+      "./web3-functions/relayer/types"
+    ],
   },
   "files": ["hardhat.config.ts"],
   "include": [

@@ -164,3 +164,9 @@ impl Into<DataModel> for Event {
     }
 }
 pub type SubscriberStore = BTreeMap<Principal, Subscriber>;
+
+#[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
+pub struct RemittanceSubscriber {
+    pub canister_principal: Principal,
+    pub subscribed: bool,
+}

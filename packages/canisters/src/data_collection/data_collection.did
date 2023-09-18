@@ -1,14 +1,19 @@
 type Counter = record {
 	value : nat64;
 };
-type Subscriber = record {
-	topic : text;
+
+type RemittanceCanister = record {
+	canister_principal : principal;
+	subscribed : bool;
 };
 
 service : {
-	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (text) query;
-	"subscribe" : (subscriber : Subscriber) -> ();
+	"owner" : () -> (owner_principal : text) query;
 	"is_subscribed" : (canister : principal) -> (bool) query;
+	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister) query;
+
+	"subscribe" : () -> ();
 	"manual_publish" : (array_of_json_events : text) -> ();
+	"set_remittance_canister" : (canister_principal : principal) -> ();
 };

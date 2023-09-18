@@ -10,9 +10,9 @@ import {
 	getRemittanceCanister,
 } from '../../utils/functions';
 
-const CANISTER_NAME = 'data_collection canister';
+const CANISTER_NAME = 'protocol_data_collection canister';
 
-describe('Data Collection Canister', () => {
+describe('Protocol Data Collection Canister', () => {
 	let DC_CANISTER: ActorSubclass<_DC_SERVICE>;
 	let R_CANISTER: ActorSubclass<_R_SERVICE>;
 	let R_CANISTER_ID: String;
@@ -35,18 +35,37 @@ describe('Data Collection Canister', () => {
 		R_CANISTER_ID = rCanisterId;
 	});
 
-
 	test('It Should return the canister name', async () => {
-		const response = await DC_CANISTER.name();
+		const response = await PDC_CANISTER.name();
 		expect(response).toBe(CANISTER_NAME);
 	});
 
 	test('It can set remittance canister', async () => {
-		await DC_CANISTER.set_remittance_canister(Principal.from(R_CANISTER_ID));
+		await PDC_CANISTER.set_remittance_canister(Principal.from(R_CANISTER_ID));
 
-		const rCanisterDetails = await DC_CANISTER.get_remittance_canister();
+		const rCanisterDetails = await PDC_CANISTER.get_remittance_canister();
 		expect(rCanisterDetails.canister_principal).toEqual(
 			Principal.from(R_CANISTER_ID),
 		);
+	});
+
+	test('It can set logstore credentials', async () => {
+		const SAMPLE_TIMESTAMP = BigInt(1234567);
+		const SAMPLE_QUERY_URL = 'SAMPLE_QUERY_URL';
+		const SAMPLE_QUERY_TOKEN = 'SAMPLE_QUERY_TOKEN';
+
+		await PDC_CANISTER.initialise_logstore(
+			SAMPLE_TIMESTAMP,
+			SAMPLE_QUERY_URL,
+			SAMPLE_QUERY_TOKEN,
+		);
+
+		const gottenTimeStamp = await PDC_CANISTER.last_queried_timestamp();
+		const gottenQueryURL = await PDC_CANISTER.get_query_url();
+		const gottenQueryToken = await PDC_CANISTER.get_query_token();
+
+		expect(gottenTimeStamp.toString()).toEqual(SAMPLE_TIMESTAMP.toString());
+		expect(gottenQueryURL).toEqual(SAMPLE_QUERY_URL);
+		expect(gottenQueryToken).toEqual(SAMPLE_QUERY_TOKEN);
 	});
 });

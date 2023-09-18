@@ -11,7 +11,7 @@ describe('Remittance Canister', () => {
 		expect(response).toBe(CANISTER_NAME);
 	});
 
-	test('It Can generate pubblic key', async () => {
+	test('It can generate public key', async () => {
 		const response = await canister.public_key();
 		if (!('Ok' in response)) return;
 
@@ -19,5 +19,9 @@ describe('Remittance Canister', () => {
 		const computedEthereumPK = utils.computeAddress(`0x${sec1PK}`);
 
 		expect(ethereumPK.toLowerCase()).toEqual(computedEthereumPK.toLowerCase());
+	});
+
+	test("It", async () => {
+
 	});
 });

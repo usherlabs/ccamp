@@ -89,10 +89,11 @@ pub async fn derive_pk() -> Vec<u8> {
     let request = ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
-        // TODO set this as an environment variable
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
-    };
+        // value to be changed between testing and production
+        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(), //for testing/development
+        // key_id: ecdsa::EcdsaKeyIds::ProductionKey1.to_key_id(), //for production
 
+    };
     let (res,): (ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(
         Principal::management_canister(),
         "ecdsa_public_key",

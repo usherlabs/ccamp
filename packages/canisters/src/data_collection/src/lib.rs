@@ -1,13 +1,10 @@
 use candid::Principal;
 use ic_cdk::storage;
 use ic_cdk_macros::*;
-use std::cell::RefCell;
+use lib::RemittanceSubscriber;
 
 mod remittance;
 
-thread_local! {
-    static SUBSCRIBERS: RefCell<lib::dc::SubscriberStore> = RefCell::default();
-}
 
 // @dev testing command
 #[query]
@@ -20,21 +17,36 @@ async fn init() {
     lib::owner::init_owner();
 }
 
-// this function is going to be called by the remittance canister
-// so it can recieve "publish" events from this canister
+#[query]
+fn owner() -> String {
+    lib::owner::get_owner()
+}
+
 #[update]
-fn subscribe(subscriber: lib::Subscriber) {
-    let subscriber_principal_id = ic_cdk::caller();
-    SUBSCRIBERS.with(|subscribers| {
-        subscribers
-            .borrow_mut()
-            .insert(subscriber_principal_id, subscriber);
-    });
+pub async fn set_remittance_canister(remittance_principal: Principal) {
+    lib::owner::only_owner();
+
+    lib::dc::set_remittance_canister(remittance_principal);
 }
 
 #[query]
-fn is_subscribed(principal: Principal) -> bool {
-    SUBSCRIBERS.with(|subscribers| subscribers.borrow().contains_key(&principal))
+pub fn get_remittance_canister() -> RemittanceSubscriber {
+    // confirm at least one remittance canister is subscribed to this pdc
+    lib::dc::get_remittance_canister()
+}
+
+// this function is going to be called by the remittance canister
+// so it can recieve "publish" events from this canister
+#[update]
+fn subscribe() {
+    // verify if this remittance canister has been whitelisted
+    // set the subscribed value to true if its the same, otherwise panic
+    lib::dc::subscribe();
+}
+
+#[query]
+fn is_subscribed(canister_principal: Principal) -> bool {
+    lib::dc::is_subscribed(canister_principal)
 }
 
 // we would use this method to publish data to the subscriber
@@ -50,14 +62,14 @@ async fn manual_publish(json_data: String) {
 // --------------------------- upgrade hooks ------------------------- //
 #[pre_upgrade]
 fn pre_upgrade() {
-    let cloned_store: lib::dc::SubscriberStore = SUBSCRIBERS.with(|store| store.borrow().clone());
+    let cloned_store = lib::dc::REMITTANCE_CANISTER.with(|rc| rc.borrow().clone());
     storage::stable_save((cloned_store,)).unwrap()
 }
 #[post_upgrade]
 async fn post_upgrade() {
     init().await;
 
-    let (old_store,): (lib::SubscriberStore,) = storage::stable_restore().unwrap();
-    SUBSCRIBERS.with(|store| *store.borrow_mut() = old_store);
+    let (old_store,): (Option<lib::RemittanceSubscriber>,) = storage::stable_restore().unwrap();
+    lib::dc::REMITTANCE_CANISTER.with(|store| *store.borrow_mut() = old_store);
 }
 // --------------------------- upgrade hooks ------------------------- //

@@ -73,7 +73,17 @@ If you are hosting frontend code somewhere without using DFX, you may need to ma
 
 **get public key** -> dfx canister call remittance public_key
 
+**initialise logstore secrets** -> dfx canister call protocol_data_collection initialise_logstore '(1694614219969, "https://broker-us-1.logstore.usher.so/streams/0x9c81e8f60a9b8743678f1b6ae893cc72c6bc6840%2fccamp%2falphanet", "MHg5YzgxZThmNjBhOWI4NzQzNjc4ZjFiNmFlODkzY2M3MmM2YmM2ODQwOjB4MmI2NmRiNTgwOTcwYTkyYzcyMzEwMzFiMGFlNzY2MjU4Y2RkNTEzODkwOTMyNDUyM2QzNDY2OGVmMDJlZDNiMDQ5ZjFhMTgzMmRiNTI0NTQwMTVhODczMzYwMDY5YTJkZWIyODNhNjM0ZTYwZDE5NDg4ZTcxNDI0NTc5OTBlM2MxYw")'
+
 **start polling job** -> dfx canister call protocol_data_collection poll_logstore
+
+**whitelist r canister for pdc canister** ->  dfx canister call protocol_data_collection set_remittance_canister '(principal "be2us-64aaa-aaaaa-qaabq-cai")'
+
+**whitelist r canister for dc canister** ->  dfx canister call data_collection set_remittance_canister '(principal "be2us-64aaa-aaaaa-qaabq-cai")'
+
+**get r canister for pdc canister** ->  dfx canister call protocol_data_collection get_remittance_canister
+
+**get r canister for dc canister** ->  dfx canister call data_collection get_remittance_canister
 
 **manual publish json** -> dfx canister call protocol_data_collection manual_publish '[{"event_name":"FundsDeposited","canister_id":"bkyz2-fmaaa-aaaaa-qaaaq-cai","account":"0x9C81E8F60a9B8743678F1b6Ae893Cc72c6Bc6840","amount":100000,"chain":"ethereum:5","token":"0xB24a30A3971e4d9bf771BDc81435c25EA69A445c"}]'
 
