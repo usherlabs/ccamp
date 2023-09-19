@@ -6,6 +6,7 @@
   "private": false,
   "scripts": {
     "run-relayer:goerli": "npx hardhat w3f-run relayer --logs --network goerli",
+    "deploy-relayer": "npx hardhat w3f-deploy relayer",
     "build": "yarn clean && yarn install && yarn compile && npx tsc",
     "compile": "npx hardhat compile --force",
     "clean": "rm -rf dist",

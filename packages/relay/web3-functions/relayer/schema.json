@@ -4,7 +4,8 @@
   "memory": 128,
   "timeout": 30,
   "userArgs": {
-    "startBlock": "number"
+    "startBlock": "number",
+    "publisherURLWithStream": "string"
   }
 }
 
