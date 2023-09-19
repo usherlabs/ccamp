@@ -10,7 +10,7 @@ import { mapEvent, publishEvent } from "./utils/functions";
 import ky from "ky";
 
 const MAX_RANGE = 100; // limit range of events to comply with rpc providers
-const MAX_REQUESTS = 9; // limit number of requests on every execution to avoid hitting timeout
+const MAX_REQUESTS = 4; // limit number of requests on every execution to avoid hitting timeout
 
 Web3Function.onRun(async (context: Web3FunctionContext) => {
   const { userArgs, storage, multiChainProvider, secrets } = context;
@@ -29,11 +29,12 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
   let lastProcessedBlock = parseInt(
     (await storage.get(BLOCK_STORAGE_KEY)) ?? `${defaultStartBlock}`
   );
+  // save the initial block we started from
   const initialBlock = lastProcessedBlock;
-  console.log(`Last processed block: ${lastProcessedBlock}`);
+  console.log(`Last processed block: ${lastProcessedBlock} \n`);
   // fetch the current block
   const currentBlock = (await provider.getBlockNumber()) - 1;
-  console.log(`Current block: ${currentBlock}`);
+  console.log(`Current block: ${currentBlock} \n`);
   // Fetch recent logs in range of 100 blocks
   const filter = [
     lockerContract.filters.FundsDeposited(),
@@ -49,7 +50,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     const fromBlock = lastProcessedBlock + 1;
     const toBlock = Math.min(fromBlock + MAX_RANGE, currentBlock);
 
-    console.log(`Fetching log events from blocks ${fromBlock} to ${toBlock}`);
+    console.log(`Fetching log events from blocks ${fromBlock} to ${toBlock}. \n`);
 
     try {
       const events = await lockerContract.queryFilter(
@@ -72,9 +73,10 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
   const parsedEvent = totalEvents.map(mapEvent);
   console.log({ parsedEvent });
   console.log(
-    `${parsedEvent.length} events were fetched in total from block:${initialBlock} to block:${lastProcessedBlock}  `
+    `${parsedEvent.length} events were fetched in total from block:${initialBlock} to block:${lastProcessedBlock}. \n`
   );
   if (parsedEvent.length === 0) {
+    await storage.set(BLOCK_STORAGE_KEY, lastProcessedBlock.toString());
     return {
       canExec: false,
       message: `No new event found`,
@@ -84,6 +86,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
 
   // iterate through and publish each event
   let publisherError = false;
+  let lastSavedBlock = "0";
   for await (const singleEvent of parsedEvent) {
     const publishSuccess: Boolean = await publishEvent(
       singleEvent,
@@ -93,6 +96,7 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     // update the last stored key to the last published event if succesfull,
     if (publishSuccess) {
       await storage.set(BLOCK_STORAGE_KEY, singleEvent.blockNumber.toString());
+      lastSavedBlock = singleEvent.blockNumber.toString();
     } else {
       // otherwise break because we assume the publisher is faulty
       publisherError = false;
@@ -106,6 +110,6 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     canExec: false,
     message: publisherError
       ? "Publisher error"
-      : `Succesfully published events from ${initialBlock} at ${new Date()}`,
+      : `Succesfully published events from ${initialBlock} to ${lastSavedBlock}`,
   };
 });

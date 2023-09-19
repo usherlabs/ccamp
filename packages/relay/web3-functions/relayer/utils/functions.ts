@@ -38,7 +38,7 @@ export async function publishEvent(
         ...jsonPayload,
       },
     }).text();
-    console.log(`Event:${eventData} published with response:${response}`)
+    console.log(`Event:${JSON.stringify(eventData)} published with response:${response}`)
     return response === expectedOkResponse;
   } catch (err: unknown) {
     console.log(`There was an error publishing your event:${err}`);
