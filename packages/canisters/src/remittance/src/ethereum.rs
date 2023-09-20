@@ -128,20 +128,21 @@ pub fn get_address_from_public_key(public_key: Vec<u8>) -> Result<String, String
 pub async fn sign_message(message: &Vec<u8>) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
     let message_hash = ethereum::hash_eth_message(&message);
+    let config = crate::CONFIG.with(|c| c.borrow().clone());
 
     // sign the message
     let public_key = derive_pk().await;
     let request = ecdsa::SignWithECDSA {
         message_hash: message_hash.clone(),
         derivation_path: vec![],
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+        key_id: config.key.to_key_id(),
     };
 
     let (response,): (ecdsa::SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
         Principal::management_canister(),
         "sign_with_ecdsa",
         (request,),
-        25_000_000_000,
+        config.sign_cycles,
     )
     .await
     .map_err(|e| format!("SIGN_WITH_ECDSA_FAILED {}", e.1))?;

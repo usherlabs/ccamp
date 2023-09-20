@@ -1,7 +1,6 @@
-use ic_cdk::api::{self, call::RejectionCode};
+use ic_cdk::api::call::RejectionCode;
 use lib::Event;
 use serde_json::Value;
-
 
 pub async fn publish_json(json_data: String) -> Result<(), String> {
     // the string provided should be an array of events

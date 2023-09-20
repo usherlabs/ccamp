@@ -1,6 +1,7 @@
 use candid::Principal;
 use ic_cdk::{caller, storage};
 use ic_cdk_macros::*;
+use remittance::Environment;
 
 use core::panic;
 use std::{cell::RefCell, collections::HashMap};
@@ -26,13 +27,23 @@ thread_local! {
 
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
     static CANISTER_BALANCE: RefCell<remittance::CanisterBalanceStore> = RefCell::default();
+
+    static CONFIG: RefCell<remittance::Config> = RefCell::default();
 }
 
 // ----------------------------------- init hooks
 #[init]
-fn init() {
+fn init(env_opt: Option<Environment>) {
     lib::owner::init_owner();
     random::init_ic_rand();
+
+    // save the environment this is running in
+    if let Some(env) = env_opt {
+        CONFIG.with(|s| {
+            let mut state = s.borrow_mut();
+            *state = remittance::Config::from(env);
+        })
+    }
 }
 // ----------------------------------- init hooks
 
@@ -399,6 +410,7 @@ fn pre_upgrade() {
     let cloned_is_pdc_canister = IS_PDC_CANISTER.with(|store| store.borrow().clone());
     let dc_canisters = DC_CANISTERS.with(|store| store.borrow().clone());
     let remittance_reciepts_store = REMITTANCE_RECIEPTS.with(|store| store.borrow().clone());
+    let config_store = CONFIG.with(|store| store.borrow().clone());
     // save cloned memory
     storage::stable_save((
         cloned_available_balance_store,
@@ -407,13 +419,15 @@ fn pre_upgrade() {
         cloned_is_pdc_canister,
         dc_canisters,
         remittance_reciepts_store,
+        config_store
     ))
     .unwrap()
 }
 
 #[post_upgrade]
 async fn post_upgrade() {
-    init();
+    lib::owner::init_owner();
+    random::init_ic_rand();
     // load the variables from memory
     let (
         cloned_available_balance_store,
@@ -422,6 +436,7 @@ async fn post_upgrade() {
         cloned_is_pdc_canister,
         cloned_dc_canisters,
         cloned_remittance_reciepts,
+        cloned_config,
     ): (
         remittance::AvailableBalanceStore,
         remittance::WithheldBalanceStore,
@@ -429,6 +444,7 @@ async fn post_upgrade() {
         HashMap<Principal, bool>,
         Vec<Principal>,
         remittance::RemittanceRecieptsStore,
+        remittance::Config,
     ) = storage::stable_restore().unwrap();
     //  restore by reassigning to vairiables
     REMITTANCE.with(|r| *r.borrow_mut() = cloned_available_balance_store);
@@ -436,6 +452,7 @@ async fn post_upgrade() {
     WITHHELD_AMOUNTS.with(|wa| *wa.borrow_mut() = cloned_witheld_amounts_store);
     IS_PDC_CANISTER.with(|ipc| *ipc.borrow_mut() = cloned_is_pdc_canister);
     DC_CANISTERS.with(|dc| *dc.borrow_mut() = cloned_dc_canisters);
-    REMITTANCE_RECIEPTS.with(|dc| *dc.borrow_mut() = cloned_remittance_reciepts);
+    REMITTANCE_RECIEPTS.with(|rr| *rr.borrow_mut() = cloned_remittance_reciepts);
+    CONFIG.with(|c| *c.borrow_mut() = cloned_config);
 }
 // --------------------------- upgrade hooks ------------------------- //

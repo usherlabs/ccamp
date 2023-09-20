@@ -62,6 +62,7 @@ pub enum EcdsaCurve {
     Secp256k1,
 }
 
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum EcdsaKeyIds {
     #[allow(unused)]
     TestKeyLocalDevelopment,
@@ -86,13 +87,12 @@ impl EcdsaKeyIds {
 }
 
 pub async fn derive_pk() -> Vec<u8> {
+    let config = crate::CONFIG.with(|c| c.borrow().clone());
+
     let request = ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
-        // value to be changed between testing and production
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(), //for testing/development
-        // key_id: ecdsa::EcdsaKeyIds::ProductionKey1.to_key_id(), //for production
-
+        key_id: config.key.to_key_id(),
     };
     let (res,): (ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(
         Principal::management_canister(),

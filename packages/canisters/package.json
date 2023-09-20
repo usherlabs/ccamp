@@ -27,7 +27,7 @@
 		"posttest": "dfx stop",
 		"build": "dfx generate",
 		"clean": "del ./build ./target",
-		"deploy:local": "sh ./scripts/deploy.sh",
+		"deploy:local": "sh ./scripts/deploy-local.sh",
 		"compile:force": "cargo build --target wasm32-unknown-unknown --release -p data_collection --offline",
 		"test:import-account": "dfx identity import --seed-file ./.jest/seed tester",
 		"test:use-account": "dfx identity use tester"

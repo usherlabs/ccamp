@@ -26,7 +26,7 @@ type RecieptReply = record {
 	timestamp : nat64;
 };
 
-service : {
+service : (opt variant { Development; Staging; Production }) -> {
 	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (canister_name : text) query;
 	"public_key" : () -> (record { sec1_pk : text; etherum_pk : text });
