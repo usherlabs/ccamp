@@ -9,6 +9,10 @@ mod logstore;
 mod remittance;
 
 const TIMER_INTERVAL_SEC: u64 = 60;
+// ? Currently running a timer, but in the future will be executed via the public method.
+// ? What might be necessary, is a public method to schedule the PDC Canister to start based a wait time relative to block confirmations.
+// This public function might be a process of self-executing based on a timer.
+
 thread_local! {
     static REMITTANCE_CANISTER: RefCell<Option<lib::RemittanceSubscriber>> = RefCell::default();
 }

@@ -21,7 +21,7 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
     let json_event: Value =
         serde_json::from_str(&json_data[..]).expect("JSON_DESERIALIZATION_FAILED");
     // Make sure the top-level JSON is an array
-    let update_succesfull = if let Value::Array(events) = json_event {
+    let update_succesful = if let Value::Array(events) = json_event {
         for event in events {
             // parse the json object gotten back into an "'Event' struct"
             let json_event: Event = serde_json::from_value(event).unwrap();
@@ -38,7 +38,7 @@ pub async fn publish_json(json_data: String) -> Result<(), String> {
         Err("ERROR_PARSING_EVENT_INTO_DATAMODEL".to_string())
     };
 
-    update_succesfull
+    update_succesful
 }
 
 // we would use this method to publish data to the subscriber

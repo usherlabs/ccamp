@@ -63,6 +63,7 @@ fn parse_logstore_response_to_event(event_string: String) -> String {
             events
                 .iter()
                 .map(|event| event.get("content").expect("INVALID").clone())
+                // TODO: After Log Store v0.0.3 upgrade, there will be a step to verify each event through ECDSA signature verification.
                 .collect()
         } else {
             panic!("INVALID_DATA_FORMAT");
