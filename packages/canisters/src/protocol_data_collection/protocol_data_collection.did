@@ -23,6 +23,7 @@ service : {
 	"subscribe" : () -> ();
 	"update_data" : () -> ();
 	"poll_logstore" : () -> ();
+	"halt_logstore_poll": () -> ();
 	"manual_publish" : (array_of_json_events : text) -> ();
 	"set_remittance_canister" : (canister_principal : principal) -> ();
 };
