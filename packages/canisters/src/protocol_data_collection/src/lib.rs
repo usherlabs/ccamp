@@ -1,16 +1,20 @@
-use candid::Principal;
+use candid::{Principal, CandidType};
 
 use ic_cdk::storage;
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
+use ic_cdk_timers::{TimerId, clear_timer};
 use lib::RemittanceSubscriber;
+use serde_derive::Deserialize;
 use std::{cell::RefCell, sync::atomic::Ordering};
 
 mod logstore;
 mod remittance;
 
 const TIMER_INTERVAL_SEC: u64 = 60;
+
 thread_local! {
     static REMITTANCE_CANISTER: RefCell<Option<lib::RemittanceSubscriber>> = RefCell::default();
+    pub static TIMER_ID: RefCell<Option<TimerId>> = RefCell::default();
 }
 
 // ----------------------------------- init hook ------------------------------------------ //
@@ -119,9 +123,16 @@ pub async fn poll_logstore() {
     // confirm logstore is initialised
     logstore::is_initialised();
 
-    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
+    let timer_id = ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(TIMER_INTERVAL_SEC), || {
         ic_cdk::spawn(logstore::query_logstore())
     });
+    TIMER_ID.with(|tid| *tid.borrow_mut() = Some(timer_id))
+}
+
+#[update]
+pub async fn halt_logstore_poll(){
+    let timer_id = TIMER_ID.with(|tid|tid.borrow().expect("TIMER_NOT_SET"));
+    clear_timer(timer_id);
 }
 
 // this function is going to be called by the remittance canister
