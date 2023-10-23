@@ -87,10 +87,12 @@ The smart contract component features the `Locker` contract. Its primary purpose
 
 The relayer acts as the vital intermediary that links the smart contracts to the PDC canister. It is empowered by [Gelato Web3 Functions](https://docs.gelato.network/developer-services/web3-functions/writing-web3-functions). This relayer mechanism operates as an event indexer, querying blockchain events and publishing them to a Log Store stream via HTTPS. Log Store serves as a time-series database, enabling the PDC to retrieve the latest events published by the Locker smart contract through HTTP.
 
-By [Usher Labs](https://usher.so)
-
 ## Licensing
 
 The primary license for the CCAMP is the Business Source License 1.1 (BUSL-1.1), see LICENSE. However, some files are dual licensed under GPL-2.0-or-later:
 
 - The `packages/relay/` is licensed under GPL-2.0-or-later.
+
+## Contributors
+
+- [Usher Labs](https://usher.so)
