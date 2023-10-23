@@ -15,9 +15,17 @@ CCAMP's flexibility, modularity, and data-driven approach make it an ideal choic
 
 ### 👉 Learn more
 
-- [View Demo]()
-- [View Guide on Current Architecture](https://www.loom.com/share/95eaa27a5c3042eabec3a071999035ae?sid=62edc398-b9df-4100-a56f-9e7e2b5004cd)
-- [View New Architecture](https://github.com/usherlabs/ccamp/tree/main/assets/CCAMP-Architecture-New.jpeg)
+#### Overview
+
+- [View the Introduction](https://youtu.be/R-mPl4T_ch8)
+- [View Architecture](https://github.com/usherlabs/ccamp/tree/main/assets/CCAMP-Architecture-Simple.jpeg)
+
+#### Codebase
+
+- [Step 1: Deposit](https://www.loom.com/share/18d55367509c4823bf4784ce09ed92d7?sid=423b85b8-f2b0-4500-964c-3fb247ec6491)
+- [Step 2: Withdrawal](https://www.loom.com/share/90386c85e08e4128ab21ea84a76f9935?sid=86cd63f5-5bd5-4fe2-a938-cded7747c4cf)
+- [Step 3: Re-allocate](https://www.loom.com/share/fdc5081b9e4a49e9afae4aaa7825b927?sid=9ea5c31d-7b43-490f-8c03-7585efbc4f79)
+- [A walkthrough of the Canister Code](https://www.loom.com/share/89935ad79a9f4c079bfffd10861afb23?sid=9459291c-71d4-437b-9fc5-e5b7137265f5)
 
 ### 🚙 Roadmap
 
