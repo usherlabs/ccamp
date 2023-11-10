@@ -13,7 +13,7 @@
 		"sourceMap": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
-		"noUnusedLocals": true,
+		"noUnusedLocals": false,
 		"noUnusedParameters": true,
 		"noImplicitAny": false,
 		"noImplicitThis": false,
@@ -28,8 +28,8 @@
 			"@tests/*": ["____tests____/*"]
 		}
 	},
-	"exclude": ["node_modules", "build", "dist"],
-	"include": ["**/*.ts", "jest.config.js"],
+	"exclude": ["node_modules", "build",],
+	"include": ["**/*.ts", "jest.config.js", "rollup.config.js"],
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]
 	}
