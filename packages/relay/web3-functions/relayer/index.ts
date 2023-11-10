@@ -5,7 +5,7 @@ import {
 } from "@gelatonetwork/web3-functions-sdk";
 import contractAddresses from "@ccamp/contracts/address.json";
 import { abi as LockerABI } from "@ccamp/contracts/artifacts/contracts/Locker.sol/Locker.json";
-import { BLOCK_STORAGE_KEY } from "./utils/constants";
+import { ALLOWED_FILTERS, BLOCK_STORAGE_KEY } from "./utils/constants";
 import { mapEvent, publishEvent } from "./utils/functions";
 import ky from "ky";
 
@@ -50,7 +50,9 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     const fromBlock = lastProcessedBlock + 1;
     const toBlock = Math.min(fromBlock + MAX_RANGE, currentBlock);
 
-    console.log(`Fetching log events from blocks ${fromBlock} to ${toBlock}. \n`);
+    console.log(
+      `Fetching log events from blocks ${fromBlock} to ${toBlock}. \n`
+    );
 
     try {
       const events = await lockerContract.queryFilter(
@@ -70,7 +72,12 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
   // make the requests and avoid hitting api rate limit
 
   // Parse the events into a more appriate form to be broadcasted
-  const parsedEvent = totalEvents.map(mapEvent);
+  const parsedEvent = totalEvents
+    .map(mapEvent)
+    .filter(({ event_name }) =>
+      Object.values(ALLOWED_FILTERS).includes(event_name)
+    );
+
   console.log({ parsedEvent });
   console.log(
     `${parsedEvent.length} events were fetched in total from block:${initialBlock} to block:${lastProcessedBlock}. \n`
@@ -110,6 +117,6 @@ Web3Function.onRun(async (context: Web3FunctionContext) => {
     canExec: false,
     message: publisherError
       ? "Publisher error"
-      : `Succesfully published events from ${initialBlock} to ${lastSavedBlock}`,
+      : `Succesfully published events from ${initialBlock} to ${lastSavedBlock} at timestamp ${+new Date()}`,
   };
 });

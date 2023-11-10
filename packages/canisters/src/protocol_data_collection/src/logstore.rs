@@ -73,8 +73,8 @@ fn parse_logstore_response_to_event(event_string: String) -> String {
 
 // the function to query the logstore
 pub async fn query_logstore() {
-    let query_url = get_query_url(); //"https://broker-us-1.logstore.usher.so/streams/0x9c81e8f60a9b8743678f1b6ae893cc72c6bc6840%2fccamp%2falphanet";
-    let query_token = get_query_token(); //"MHg5YzgxZThmNjBhOWI4NzQzNjc4ZjFiNmFlODkzY2M3MmM2YmM2ODQwOjB4MmI2NmRiNTgwOTcwYTkyYzcyMzEwMzFiMGFlNzY2MjU4Y2RkNTEzODkwOTMyNDUyM2QzNDY2OGVmMDJlZDNiMDQ5ZjFhMTgzMmRiNTI0NTQwMTVhODczMzYwMDY5YTJkZWIyODNhNjM0ZTYwZDE5NDg4ZTcxNDI0NTc5OTBlM2MxYw";
+    let query_url = get_query_url();
+    let query_token = get_query_token(); 
 
     let last_timestamp = get_last_timestamp();
     let url = format!(
