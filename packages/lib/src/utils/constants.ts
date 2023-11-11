@@ -19,7 +19,8 @@ export const canisterActors = {
 	remittance: createRemittanceActor,
 };
 
-export const CANISTER_TYPES: Record<string, CanisterType> = {
+type keyType = "DATA_COLLECTION" | "PROTOCOL_DATA_COLLECTION" | "REMITTANCE";
+export const CANISTER_TYPES: Record<keyType, CanisterType> = {
 	DATA_COLLECTION: 'dataCollection',
 	PROTOCOL_DATA_COLLECTION: 'protocolDataCollection',
 	REMITTANCE: 'remittance',
