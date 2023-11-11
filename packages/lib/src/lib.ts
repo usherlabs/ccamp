@@ -134,8 +134,8 @@ export class CCAMPClient {
 	async withdraw(
 		amount: ethers.BigNumberish,
 		tokenAddress: string,
-		signer: ethers.Wallet,
 		chain: string,
+		signer: ethers.Wallet,
 		overrides: {
 			lockerContract?: string;
 			dcCanister?: string;
