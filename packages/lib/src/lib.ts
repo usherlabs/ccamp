@@ -81,7 +81,7 @@ export class CCAMPClient {
 		amountToApprove: ethers.BigNumberish,
 		signer: ethers.Wallet,
 		overrides: { lockerContract?: string } = {},
-	) {
+	): Promise<ethers.ContractTransaction> {
 		let chainId = (await signer.provider.getNetwork()).chainId.toString();
 
 		const lockerContractAddress =
@@ -92,17 +92,17 @@ export class CCAMPClient {
 				'CCAMPClient.approveLockerContract: provide value for  `overrideLockerContract` parameter ',
 			);
 
-		console.log(`Approving Logger contract:${lockerContractAddress}`);
+		this._logger(
+			`CCAMPClient.approveLockerContract: Approving Logger contract:${lockerContractAddress} for amount:${amountToApprove}`,
+		);
 		// get the erc20 contract
 		const contract = new ethers.Contract(erc20TokenAddress, erc20ABI, signer);
 		const approvalTx = await contract.approve(
 			lockerContractAddress,
 			amountToApprove,
 		);
-		console.log(`Waiting for transaction:${approvalTx.hash}`);
-		const response = await approvalTx.wait();
 
-		return response;
+		return approvalTx;
 	}
 
 	async deposit(
@@ -110,30 +110,24 @@ export class CCAMPClient {
 		tokenAddress: string,
 		signer: ethers.Wallet,
 		overrides: { lockerContract?: string; dcCanister?: string } = {},
-	) {
+	): Promise<ethers.ContractTransaction> {
 		let chainId = (await signer.provider.getNetwork()).chainId.toString();
+		const canisterId =
+			overrides.dcCanister || this.canisterIds[CANISTER_TYPES.DATA_COLLECTION];
 
-		const lockerContractAddress =
-			overrides.lockerContract ||
-			lockerContractAddresses[chainId]?.lockerContractAddress;
-		if (!lockerContractAddress)
-			throw new Error(
-				'CCAMPClient.approveLockerContract: provide value for  `overrideLockerContract` parameter ',
-			);
-
+		const lockerContractAddress = this._getLockerContractAddress(chainId, {
+			lockerContract: overrides.lockerContract,
+		});
 		const lockerContract = Locker__factory.connect(
 			lockerContractAddress,
 			signer,
 		);
-		const canisterId =
-			overrides.dcCanister || this.canisterIds[CANISTER_TYPES.DATA_COLLECTION];
 
 		const depositTx = await lockerContract.depositFunds(
 			canisterId,
 			amount,
 			tokenAddress,
 		);
-
 		return depositTx;
 	}
 
@@ -148,17 +142,22 @@ export class CCAMPClient {
 			remittanceCanister?: string;
 		} = {},
 	) {
+		const address = signer.address;
+		let chainId = (await signer.provider.getNetwork()).chainId.toString();
+		const lockerContractAddress = this._getLockerContractAddress(chainId, {
+			lockerContract: overrides.lockerContract,
+		});
+		const amountSignature = await signer.signMessage(amount.toString());
+		const dcCanisterID =
+			overrides.dcCanister || this.canisterIds.dataCollection;
+
+		// get an instance of the remittance canister
 		const remittanceCanister = this.getCanisterInstance(
 			CANISTER_TYPES.REMITTANCE,
 			{ canisterId: overrides.remittanceCanister },
 		) as RemittanceCanister;
 
-		const address = signer.address;
-		const amountSignature = await signer.signMessage(amount.toString());
-
-		const dcCanisterID =
-			overrides.dcCanister || this.canisterIds.dataCollection;
-
+		// get the parameters from the remittance canister
 		const { signature, hash, nonce } = await remittanceCanister.remit(
 			tokenAddress,
 			chain,
@@ -167,9 +166,32 @@ export class CCAMPClient {
 			BigInt(String(amount)),
 			amountSignature,
 		);
+		this._logger(
+			`CCAMPClient.withdraw: Parameters requested obtained from remittance canister`,
+		);
 
-		let chainId = (await signer.provider.getNetwork()).chainId.toString();
+		// withdraw from the locker contract
+		const lockerContract = Locker__factory.connect(
+			lockerContractAddress,
+			signer,
+		);
+		this._logger(
+			`CCAMPClient.withdraw: Depositing tokens into address:${address}`,
+		);
+		const withdrawTx = lockerContract.withdraw(
+			dcCanisterID,
+			tokenAddress,
+			nonce.toString(),
+			amount,
+			signature,
+		);
+		return withdrawTx;
+	}
 
+	private _getLockerContractAddress(
+		chainId: string | number,
+		overrides: { lockerContract?: string } = {},
+	) {
 		const lockerContractAddress =
 			overrides.lockerContract ||
 			lockerContractAddresses[chainId]?.lockerContractAddress;
@@ -177,20 +199,10 @@ export class CCAMPClient {
 			throw new Error(
 				'CCAMPClient.approveLockerContract: provide value for  `overrideLockerContract` parameter ',
 			);
-		const lockerContract = Locker__factory.connect(
-			lockerContractAddress,
-			signer,
-		);
-		console.log({ nonce: nonce.toString() });
+		return lockerContractAddress;
+	}
 
-		// withdraw from locker
-		const withdrawTx = lockerContract.withdraw(
-			dcCanisterID,
-			tokenAddress,
-			nonce.toString(),
-			'100',
-			signature,
-		);
-		return withdrawTx;
+	private _logger(text: string) {
+		console.log(text);
 	}
 }

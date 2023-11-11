@@ -3,11 +3,9 @@ import { ethers } from 'ethers';
 import { CCAMPClient } from '../src/lib';
 import { CANISTER_TYPES } from '../src/utils/constants';
 
-const privateKey =
-	'5c84798ddd6c66759443f0f148aafd25f8c1c670e9014e901bbdd4fe7f24d0d1';
+const privateKey = '';
 const chain = 'goerli';
-const infuraKey = 'ee55daa43fd04742ac2cc4053af2e2be';
-const infuraSecret = '1fddbb7f1cf649938c25b108df59eab7';
+const infuraKey = '';
 const testTokenAddress = '0xB24a30A3971e4d9bf771BDc81435c25EA69A445c';
 const chainIdentifier = 'ethereum:5';
 
@@ -39,9 +37,14 @@ describe('Remittance Canister', () => {
 		// const deposit = await client.deposit(10000000, testTokenAddress, wallet);
 		// console.log(deposit);
 
-		const deposit = await client.withdraw(100, testTokenAddress, wallet, chainIdentifier);
-		console.log({
-			deposit,
-		});
+		// const deposit = await client.withdraw(
+		// 	100,
+		// 	testTokenAddress,
+		// 	wallet,
+		// 	chainIdentifier,
+		// );
+		// console.log({
+		// 	deposit,
+		// });
 	});
 });
