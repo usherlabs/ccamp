@@ -375,11 +375,12 @@ async fn get_reciept(dc_canister: Principal, nonce: u64) -> remittance::Remittan
 
 #[update]
 async fn public_key() -> ecdsa::PublicKeyReply {
+    let config = crate::CONFIG.with(|c| c.borrow().clone());
+
     let request = ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
-        // TODO set this as an environment variable
-        key_id: ecdsa::EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+        key_id: config.key.to_key_id(),
     };
 
     let (res,): (ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(

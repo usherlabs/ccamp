@@ -3,9 +3,13 @@
 	"version": "0.0.1",
 	"description": "The Cross Chain Asset management protocol Solidity Contracts",
 	"author": "Shuaibu Alexander <shuaibualexander@gmail.so>",
+	"main": "./dist/index.js",
+	"types": "./typechain-types/index.js",
 	"scripts": {
 		"test": "hardhat test",
-		"build": "hardhat compile",
+		"build": "npm run compile && npm run types",
+		"compile": "hardhat compile",
+		"types": "tsc -b tsconfig.types.json",
 		"deploy:hardhat": "hardhat run scripts/deploy-locker.ts --network hardhat",
 		"upgrade:hardhat": "hardhat run scripts/upgrade-locker.ts --network hardhat"
 	},
@@ -18,6 +22,12 @@
 		"solidity",
 		"logstore",
 		"typescript"
+	],
+	"files": [
+		"./dist",
+		"./address.json",
+		"./artifacts",
+		"./src/**/*.sol"
 	],
 	"devDependencies": {
 		"@nomicfoundation/hardhat-toolbox": "^2.0.2",
