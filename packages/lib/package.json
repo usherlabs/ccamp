@@ -3,7 +3,7 @@
   "version": "1.0.6",
   "description": "The javascript library for interacting with the ccamp",
   "files": [
-    "pkg"
+    "dist/pkg"
   ],
   "main": "dist/pkg/ccamp-lib.cjs",
   "types": "dist/pkg/ccamp-lib.d.ts",
