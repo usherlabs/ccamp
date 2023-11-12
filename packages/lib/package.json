@@ -3,7 +3,8 @@
   "version": "1.0.10",
   "description": "The javascript library for interacting with the ccamp",
   "files": [
-    "dist/pkg"
+    "dist/pkg",
+    "README.md"
   ],
   "main": "dist/pkg/ccamp-lib.cjs",
   "types": "dist/pkg/ccamp-lib.d.ts",
