@@ -5,13 +5,13 @@ The `CCAMPClient` is a TypeScript class designed to streamline interactions with
 
 ## Table of Contents
 
-- [Installation](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#installation)
-- [Usage](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#usage)
-  - [Constructor](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#constructor)
-  - [getCanisterInstance](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#getcanisterinstance)
-  - [approveLockerContract](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#approvelockercontract)
-  - [deposit](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#deposit)
-  - [withdraw](https://chat.openai.com/c/073de091-84c7-4ff6-aded-3955335ad8a3#withdraw)
+- Installation
+- Usage
+  - Constructor
+  - getCanisterInstance
+  - approveLockerContract
+  - deposit
+  - withdraw
 
 ## Installation
 
