@@ -91,13 +91,13 @@ await ccampClient.deposit(amount, 'token_address', signer);
 Withdraw funds from the network.
 
 ```typescript
-withdraw(amount: ethers.BigNumberish, tokenAddress: string, signer: ethers.Wallet, chain: string, overrides?: { lockerContract?: string; dcCanister?: string; remittanceCanister?: string }): Promise<Transaction>
+withdraw(amount: ethers.BigNumberish, tokenAddress: string, chain: string ,signer: ethers.Wallet, overrides?: { lockerContract?: string; dcCanister?: string; remittanceCanister?: string }): Promise<Transaction>
 ```
 
 - `amount`: Amount to withdraw.
 - `tokenAddress`: Ethereum address of the token.
-- `signer`: Ethereum Wallet signer.
 - `chain`: Blockchain identifier.
+- `signer`: Ethereum Wallet signer.
 - `overrides.lockerContract`: Override the default locker contract address.
 - `overrides.dcCanister`: Override the default data collection canister ID.
 - `overrides.remittanceCanister`: Override the default remittance canister ID.

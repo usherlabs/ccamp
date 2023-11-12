@@ -1232,7 +1232,7 @@
 
 "@ccamp/lib@file:/Users/xander/Documents/workstation/usher/ccamp/packages/lib":
   "resolved" "file:packages/lib"
-  "version" "1.0.10"
+  "version" "1.0.12"
   dependencies:
     "@dfinity/agent" "^0.15.7"
     "@dfinity/assets" "^0.15.7"
