@@ -20,6 +20,7 @@ CCAMP's flexibility, modularity, and data-driven approach make it an ideal choic
 - [View the Introduction](https://youtu.be/R-mPl4T_ch8)
 - [View Architecture](https://github.com/usherlabs/ccamp/tree/main/assets/CCAMP-Architecture-Simple.jpeg)
 - [Read the Announcement](https://forum.dfinity.org/t/introducing-ccamp-unlocking-cross-chain-defi-aggregation-on-the-internet-computer/24643)
+- [View the Integration Guide](https://github.com/usherlabs/ccamp-integration-guide)
 
 #### Codebase
 
