@@ -33,9 +33,6 @@ CCAMP's flexibility, modularity, and data-driven approach make it an ideal choic
 
 The development of CCAMP is a journey marked by continuous enhancement and innovation. Here's a glimpse into our future plans and how we intend to evolve the protocol:
 
-- [ ] **Enhancing Data Relay**  
-       Our current architecture employs Web3 Functions for a lean data relay from blockchain sources to CCAMP. This proof-of-concept approach aggregates events from diverse blockchains, however, is cyclical due to CRON execution. Our plan is to transition to a relayer network model. In this phase, each relayer will reference its own RPC nodes and blockchain gateways. This upgrade aims to ensure the confirmation of events originating from source blockchains derive from disparate gateways, decreasing risk of centralisation and enhancing data reliability and security.
-
 - [ ] **Near Real-Time Data Ingestion**  
        We are committed to enabling near real-time DeFi capabilities within CCAMP. To achieve this, we plan to replace on-chain calls to the Log Store with a dedicated ingestion node optimised for high-frequency data ingestion. This transformation empowers CCAMP to operate as swiftly as incoming data, ushering in a new era of near real-time DeFi. The ingestion node will also support bespoke data protocols designed for Data Collection (DC) Canisters, allowing CCAMP to manage assets based on real-time real-world data.
 
