@@ -34,7 +34,7 @@ CCAMP's flexibility, modularity, and data-driven approach make it an ideal choic
 The development of CCAMP is a journey marked by continuous enhancement and innovation. Here's a glimpse into our future plans and how we intend to evolve the protocol:
 
 - [ ] **Near Real-Time Data Ingestion**  
-       We are committed to enabling near real-time DeFi capabilities within CCAMP. To achieve this, we plan to replace on-chain calls to the Log Store with a dedicated ingestion node optimised for high-frequency data ingestion. This transformation empowers CCAMP to operate as swiftly as incoming data, ushering in a new era of near real-time DeFi. The ingestion node will also support bespoke data protocols designed for Data Collection (DC) Canisters, allowing CCAMP to manage assets based on real-time real-world data.
+       We are committed to enabling near real-time DeFi capabilities within CCAMP. To achieve this, we plan to replace on-chain HTTP outcalls with a dedicated node optimised for high-frequency verifiable data ingestion. This transformation empowers CCAMP to operate as swiftly as incoming data, ushering in a new era of near real-time DeFi.
 
 - [ ] **Account Reconciliation**  
        As we seek to enhance the speed and efficiency of CCAMP, we recognise the limitations posed by block confirmation wait periods for every Locker Contract interaction. Our ongoing research and development efforts focus on account reconciliation and the introduction of a mechanism to flush Canister historic state transitions to the Log Store. This innovative approach will allow all incoming deposits to immediately influence the protocol's aggregated liquidity, while withdrawals will still await the block confirmation period.
