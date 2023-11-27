@@ -2,6 +2,9 @@
   "5": {
     "lockerContractAddress": "0xadBBdcdbF9B77720775103dd126346686C1d9011"
   },
+  "137": {
+    "lockerContractAddress": "0x92C126AF8a48f8468A1777F65d64457E8191A40E"
+  },
   "31337": {
     "lockerContractAddress": "0xe3BaA4370f4Dc862B62ed530E00eEfF2A9780259"
   }

@@ -1,0 +1,33 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Locker
+    network: mainnet
+    source:
+      address: "0x92C126AF8a48f8468A1777F65d64457E8191A40E"
+      abi: Locker
+      startBlock: 50493551
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - DepositedFund
+        - WithdrawnFund
+        - CanceledWithdraw
+        - UpdateRemittanceCanister
+      abis:
+        - name: Locker
+          file: ./abis/Locker.json
+      eventHandlers:
+        - event: FundsDeposited(string,indexed address,uint256,string,address)
+          handler: handleFundsDeposited
+        - event: FundsWithdrawn(string,indexed address,uint256,string,address)
+          handler: handleFundsWithdrawn
+        - event: WithdrawCanceled(string,indexed address,uint256,string,address)
+          handler: handleFundsWithdrawn
+        - event: UpdateRemittanceCanister(address)
+          handler: handleUpdateRemittanceCanister
+      file: ./src/locker.ts
