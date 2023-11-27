@@ -1,0 +1,32 @@
+{
+  "name": "indexer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "",
+    "dev": "ts-node -r tsconfig-paths/register src/index.ts",
+    "build": "ttsc",
+    "start": "npm run build && node ./dist/index.js",
+    "setup": "./setup.sh"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "ethers": "^6.8.1",
+    "pg": "^8.11.3",
+    "web3-eth-abi": "^4.1.4",
+    "@ccamp/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "<4.8",
+    "ts-transformer-imports": "^0.4.3",
+    "@types/pg": "^8.10.9",
+    "npm": "^10.2.4",
+    "tsconfig-paths": "^4.2.0",
+    "ttypescript": "^1.5.15",
+    "typescript-transform-paths": "^3.4.6",
+  }
+}

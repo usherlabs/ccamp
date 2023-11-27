@@ -8,7 +8,6 @@ import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
 import { Principal } from '@dfinity/principal';
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
-import { createRequire } from 'node:module';
 
 import erc20ABI from './abi/erc20.json';
 import {
