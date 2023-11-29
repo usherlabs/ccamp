@@ -1,0 +1,31 @@
+type DepositedFund @entity(immutable: true) {
+  id: Bytes!
+  canisterId: String!
+  account: Bytes!
+  amount: BigInt!
+  chain: String!
+  token: Bytes!
+}
+
+type WithdrawnFund @entity(immutable: true) {
+  id: Bytes!
+  canisterId: String!
+  account: Bytes!
+  amount: BigInt!
+  chain: String!
+  token: Bytes!
+}
+
+type CanceledWithdraw @entity(immutable: true) {
+  id: Bytes!
+  canisterId: String!
+  account: Bytes!
+  amount: BigInt!
+  chain: String!
+  token: Bytes!
+}
+
+type UpdateRemittanceCanister @entity(immutable: true) {
+  id: Bytes!
+  remittanceCanister: Bytes!
+}
