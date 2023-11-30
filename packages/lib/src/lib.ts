@@ -13,18 +13,20 @@ import erc20ABI from './abi/erc20.json';
 import {
 	CanisterIds,
 	CanisterType,
+	DataCollectionCanister,
 	Environment,
 	RemittanceCanister,
 } from './types';
 import { CANISTER_TYPES, canisterActors, ENV, HOSTS } from './utils/constants';
 import { prependKeyWith0x } from './utils/functions';
+import { ProtocolDataCollectionCanister } from 'dist/pkg/ccamp-lib';
 
 export class CCAMPClient {
 	public agent: Agent;
 	public canisterIds: CanisterIds;
 	public actors = canisterActors;
 	public env: Environment;
-	public identity: Secp256k1KeyIdentity
+	public identity: Secp256k1KeyIdentity;
 
 	// initialise a constructor with your private key and the url of the rpc you want to connect to
 	constructor(
@@ -74,6 +76,23 @@ export class CCAMPClient {
 			},
 		);
 		return actor;
+	}
+
+	getCCampCanisters(client: CCAMPClient) {
+		const pdcCanister =
+			client.getCanisterInstance(CANISTER_TYPES.PROTOCOL_DATA_COLLECTION) as ProtocolDataCollectionCanister;
+		const remittanceCanister = client.getCanisterInstance(
+			CANISTER_TYPES.REMITTANCE,
+		) as RemittanceCanister;
+		const dcCanister = client.getCanisterInstance(
+			CANISTER_TYPES.DATA_COLLECTION,
+		) as DataCollectionCanister;
+
+		return {
+			pdcCanister,
+			remittanceCanister,
+			dcCanister,
+		};
 	}
 
 	async approveLockerContract(
