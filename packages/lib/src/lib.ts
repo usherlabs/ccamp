@@ -24,6 +24,7 @@ export class CCAMPClient {
 	public canisterIds: CanisterIds;
 	public actors = canisterActors;
 	public env: Environment;
+	public identity: Secp256k1KeyIdentity
 
 	// initialise a constructor with your private key and the url of the rpc you want to connect to
 	constructor(
@@ -39,12 +40,12 @@ export class CCAMPClient {
 
 		// Convert the private key to a Buffer and generate a keypair
 		const privateKey = Buffer.from(ethereumPrivateKey, 'hex');
-		const identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
+		this.identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
 
 		// use keypair to generate an agent
 		const host = HOSTS[env];
 		this.agent = new HttpAgent({
-			identity: identity,
+			identity: this.identity,
 			host: host,
 			fetch,
 		});
@@ -92,7 +93,7 @@ export class CCAMPClient {
 			);
 
 		this._logger(
-			`CCAMPClient.approveLockerContract: Approving Logger contract:${lockerContractAddress} for amount:${amountToApprove}`,
+			`CCAMPClient.approveLockerContract: Approving Locker contract:${lockerContractAddress} for amount:${amountToApprove}`,
 		);
 		// get the erc20 contract
 		const contract = new ethers.Contract(erc20TokenAddress, erc20ABI, signer);
