@@ -1,7 +1,70 @@
+use core::panic;
+
+use crate::logstore::derive_event_model;
+use crate::logstore::types::JSONPayload;
 use candid::Principal;
 use ic_cdk::api::call::RejectionCode;
-use lib::Event;
-use serde_json::Value;
+use lib::{ethereum::recover_address_from_eth_signature, Event};
+use serde_json::{json, Value};
+
+pub async fn publish_event(json_data: String) -> Result<(), String> {
+    // pub async fn publish_json(json_data: String) -> Result<(), String> {
+    let validation_treshold = 1;
+    let payload: JSONPayload =
+        serde_json::from_str(&json_data[..]).expect("FAILED_TO_DESERIALIZE_JSON");
+
+    if payload.validation.len() < validation_treshold {
+        panic!("NOT_ENOUGH_VALIDATIONS")
+    }
+
+    // validate the signature and get the hashes from the source for comparison
+    let message = payload.source.get_signature_payload();
+    let publisher_id = payload.source.stream_message.message_id.publisher_id;
+    let signature = payload.source.stream_message.signature;
+
+    let recovered = recover_address_from_eth_signature(signature, message).unwrap();
+    if recovered != publisher_id {
+        panic!(
+            "SIGNATURE_VERIFICATION_FAILED:recovered key: {}; public key:{}",
+            recovered, publisher_id
+        );
+    }
+    // verify the signature of each validation and content
+    for validation in payload.validation.clone() {
+        let message = validation.get_signature_payload();
+        let publisher_id = validation.metadata.stream_message.message_id.publisher_id;
+        let signature = validation.metadata.stream_message.signature;
+
+        let recovered = recover_address_from_eth_signature(signature, message).unwrap();
+        if recovered != publisher_id {
+            panic!(
+                "SIGNATURE_VERIFICATION_FAILED:recovered key: {}; public key:{}",
+                recovered, publisher_id
+            )
+        }
+        let is_valid = validation.content.block_hash == payload.source.content.block_hash
+            && validation.content.log_index == payload.source.content.log_index
+            && validation.content.transaction_hash == payload.source.content.transaction_hash;
+
+        if !is_valid {
+            panic!("INVALID_MESSAGE_CONTENT")
+        }
+    }
+
+    let validations = payload.validation.clone();
+
+    let parsed_event =
+        derive_event_model(&validations[0].content.topics, &validations[0].content.data);
+
+    // panic!("{:?}", parsed_event);
+    let dc_canister: Principal = (&parsed_event.canister_id[..]).try_into().unwrap();
+
+    let data_model: lib::DataModel = parsed_event.try_into().unwrap();
+    let broadcast_response = broadcast_to_subscribers(&vec![data_model], dc_canister);
+    // convert the event details to a data model
+
+    broadcast_response.or(Err("ERR_SAVING_DATA".to_string()))
+}
 
 pub async fn publish_json(json_data: String) -> Result<(), String> {
     // the string provided should be an array of events

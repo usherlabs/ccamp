@@ -3,7 +3,7 @@ import localCanisterIds from '@ccamp/canisters/.dfx/local/canister_ids.json';
 import remoteCanisterIds from '@ccamp/canisters/canister_ids.json';
 import { Locker__factory } from '@ccamp/contracts';
 import lockerContractAddresses from '@ccamp/contracts/address.json';
-import { Agent, HttpAgent } from '@dfinity/agent';
+import { ActorSubclass, Agent, HttpAgent } from '@dfinity/agent';
 import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
 import { Principal } from '@dfinity/principal';
 import { ethers } from 'ethers';
@@ -15,11 +15,11 @@ import {
 	CanisterType,
 	DataCollectionCanister,
 	Environment,
+	ProtocolDataCollectionCanister,
 	RemittanceCanister,
 } from './types';
 import { CANISTER_TYPES, canisterActors, ENV, HOSTS } from './utils/constants';
 import { prependKeyWith0x } from './utils/functions';
-import { ProtocolDataCollectionCanister } from 'dist/pkg/ccamp-lib';
 
 export class CCAMPClient {
 	public agent: Agent;
@@ -66,7 +66,7 @@ export class CCAMPClient {
 	getCanisterInstance(
 		canisterType: CanisterType,
 		overrides: { canisterId?: string } = {},
-	) {
+	): ActorSubclass<any> {
 		// initialise an instance of the pdc canister and return it
 		const createActor = canisterActors[canisterType];
 		const actor = createActor(
@@ -78,18 +78,22 @@ export class CCAMPClient {
 		return actor;
 	}
 
-	getCCampCanisters(client: CCAMPClient) {
-		const pdcCanister =
-			client.getCanisterInstance(CANISTER_TYPES.PROTOCOL_DATA_COLLECTION) as ProtocolDataCollectionCanister;
-		const remittanceCanister = client.getCanisterInstance(
+	getCCampCanisters(): {
+		pdcCanister: ProtocolDataCollectionCanister;
+		remittanceCanister: RemittanceCanister;
+		dcCanister: DataCollectionCanister;
+	} {
+		const pdcCanister = this.getCanisterInstance(
+			CANISTER_TYPES.PROTOCOL_DATA_COLLECTION,
+		) as ProtocolDataCollectionCanister;
+
+		const remittanceCanister = this.getCanisterInstance(
 			CANISTER_TYPES.REMITTANCE,
-		) as RemittanceCanister;
-		const dcCanister = client.getCanisterInstance(
-			CANISTER_TYPES.DATA_COLLECTION,
-		) as DataCollectionCanister;
+		);
+		const dcCanister = this.getCanisterInstance(CANISTER_TYPES.DATA_COLLECTION);
 
 		return {
-			pdcCanister,
+			pdcCanister ,
 			remittanceCanister,
 			dcCanister,
 		};

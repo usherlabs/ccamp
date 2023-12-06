@@ -5,9 +5,12 @@ use serde::Deserialize;
 use std::{collections::BTreeMap, fmt::Display};
 
 pub mod constants;
+pub mod ethereum;
+pub mod ecdsa;
 pub mod dc;
 pub mod owner;
 pub mod utils;
+pub mod remittance;
 
 #[derive(Clone, Debug, Deserialize, CandidType, PartialEq, Hash, Eq)]
 pub struct Wallet {
@@ -114,7 +117,7 @@ impl TryFrom<String> for Chain {
         match (lowercase_chain_name, chain_id) {
             ("ethereum", "1") => Ok(Chain::Ethereum1),
             ("ethereum", "5") => Ok(Chain::Ethereum5),
-            ("polygon", "137") => Ok(Chain::Polygon137),
+            ("ethereum", "137") => Ok(Chain::Polygon137),
             ("icp", _) => Ok(Chain::Icp),
             _ => Err(String::from("INVALID CHAIN")),
         }

@@ -19,14 +19,17 @@ if (!infuraKey)
 const chain = {
 	sepolia: {
 		chainId: 11155111,
-		rpc: `https://sepolia.infura.io/v3/${infuraKey}`,
+		url: `https://sepolia.infura.io/v3/${infuraKey}`,
 	},
 	goerli: {
 		chainId: 5,
-		rpc: `https://goerli.infura.io/v3/${infuraKey}`,
+		url: `https://goerli.infura.io/v3/${infuraKey}`,
+	},
+	polygon: {
+		chainId: 137,
+		url: `https://polygon-mainnet.infura.io/v3/${infuraKey}`,
 	},
 };
-const forkURLs = {};
 
 const config: HardhatUserConfig = {
 	solidity: '0.8.18',
@@ -34,13 +37,9 @@ const config: HardhatUserConfig = {
 		hardhat: {
 			accounts: {
 				mnemonic,
-			},
-			// chainId: chain['sepolia'].chainId,
-			// forking: {
-			// 	url: chain['sepolia'].rpc,
-			// 	blockNumber: 8800522,
-			// },
+			}
 		},
+		...chain,
 	},
 };
 

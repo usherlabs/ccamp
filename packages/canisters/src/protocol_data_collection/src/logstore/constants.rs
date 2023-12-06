@@ -1,0 +1,3 @@
+pub const FUNDS_DEPOSITED_DECLARATION: &str = "event FundsDeposited(string canisterId, address indexed account, uint amount, string chain, address token)";
+pub const FUNDS_WITHDRAWN_DECLARATION: &str = "event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, address token)";
+pub const FUNDS_CANCELED_DECLARATION: &str = "event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, address token)";

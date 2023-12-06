@@ -1,7 +1,7 @@
 use crate::{
     ecdsa::{self, derive_pk},
     ethereum,
-    utils::{self, string_to_vec_u8},
+    utils::{self, string_to_vec_u8}, remittance::Config,
 };
 use candid::Principal;
 use easy_hasher::easy_hasher;
@@ -125,13 +125,12 @@ pub fn get_address_from_public_key(public_key: Vec<u8>) -> Result<String, String
     Ok(address)
 }
 
-pub async fn sign_message(message: &Vec<u8>) -> Result<ecdsa::SignatureReply, String> {
+pub async fn sign_message(message: &Vec<u8>, config: &Config) -> Result<ecdsa::SignatureReply, String> {
     // hash the message to be signed
     let message_hash = ethereum::hash_eth_message(&message);
-    let config = crate::CONFIG.with(|c| c.borrow().clone());
 
     // sign the message
-    let public_key = derive_pk().await;
+    let public_key = derive_pk(config).await;
     let request = ecdsa::SignWithECDSA {
         message_hash: message_hash.clone(),
         derivation_path: vec![],

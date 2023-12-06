@@ -1,7 +1,7 @@
-import { data_collection } from '@ccamp/canisters/src/declarations/data_collection';
-import { protocol_data_collection } from '@ccamp/canisters/src/declarations/protocol_data_collection';
-import { remittance } from '@ccamp/canisters/src/declarations/remittance';
-import { Actor } from '@dfinity/agent';
+import { _SERVICE as _DC_SERVICE } from '@ccamp/canisters/src/declarations/data_collection/data_collection.did';
+import { _SERVICE as _PDC_SERVICE } from '@ccamp/canisters/src/declarations/protocol_data_collection/protocol_data_collection.did';
+import { _SERVICE as _REMITTANCE_SERVICE } from '@ccamp/canisters/src/declarations/remittance/remittance.did';
+import { Actor, ActorSubclass } from '@dfinity/agent';
 
 export type Environment = 'prod' | 'dev';
 
@@ -22,6 +22,6 @@ export type CanisterActors = {
 	remittance: Actor;
 };
 
-export type DataCollectionCanister = typeof data_collection;
-export type ProtocolDataCollectionCanister = typeof protocol_data_collection;
-export type RemittanceCanister = typeof remittance;
+export type DataCollectionCanister = ActorSubclass<_DC_SERVICE>;
+export type ProtocolDataCollectionCanister = ActorSubclass<_PDC_SERVICE>;
+export type RemittanceCanister = ActorSubclass<_REMITTANCE_SERVICE>;

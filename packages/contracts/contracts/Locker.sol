@@ -35,14 +35,16 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         initialized = true;
     }
 
-    function depositFunds(string calldata _canisterId, uint256 _amount, address _token) public payable {
+    function depositFunds(string calldata _canisterId, uint256 _amount, address _token) public nonReentrant payable returns(bool) {
         require(bytes(_canisterId).length == 27, "INVALID_CANISTERID");
         require(_amount > 0, "amount == 0");
 
-        IERC20Upgradeable(_token).transferFrom(msg.sender, address(this), _amount);
         canisters[keccak256(bytes(_canisterId))][_token] += _amount;
 
         emit FundsDeposited(_canisterId, msg.sender, _amount, chainId, _token);
+        bool response = IERC20Upgradeable(_token).transferFrom(msg.sender, address(this), _amount);
+
+        return response;
     }
 
     function setRemittanceCanisterAddress(address _remittanceCanister) public onlyOwner {
@@ -64,8 +66,9 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         uint _nonce,
         uint _amount,
         bytes calldata _signature
-    ) public nonReentrant {
-        withdrawTo(_canisterId, _token, _nonce, _amount, _signature, msg.sender);
+    ) public nonReentrant returns(bool) {
+        bool success = withdrawTo(_canisterId, _token, _nonce, _amount, _signature, msg.sender);
+        return success;
     }
 
     function withdrawTo(
@@ -75,7 +78,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         uint _amount,
         bytes calldata _signature,
         address _recipient
-    ) public {
+    ) public nonReentrant returns(bool) {
         require(initialized, "CONTRACT_UNINITIALIZED");
         require(getBalance(_canisterId, _token) >= _amount, "WITHDRAW_AMOUNT > CONTRACT_BALANCE");
         require(!usedSignatures[_signature], "USED_SIGNATURE");
@@ -84,9 +87,10 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         require(validateSignature(dataHash, _signature), "INVALID_SIGNATURE");
 
         usedSignatures[_signature] = true;
-        IERC20Upgradeable(_token).transfer(_recipient, _amount);
 
         emit FundsWithdrawn(_canisterId, msg.sender, _amount, chainId, _token);
+        bool success = IERC20Upgradeable(_token).transfer(_recipient, _amount);
+        return success;
     }
 
     function cancelWithdraw(
