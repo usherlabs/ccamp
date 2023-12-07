@@ -265,3 +265,7 @@ npm start
 ```
 
 Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
+
+<!-- new commands tobe documented -->
+<!-- dfx canister call protocol_data_collection a
+dd_publisher '(principal "qtyrj-5d7hy-yotni-4pnny-4vxak-pgha6-6gxas-7k52m-pqxkp-qa2oz-zqe")' -->

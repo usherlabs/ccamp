@@ -27,7 +27,8 @@
 		"./dist",
 		"./address.json",
 		"./artifacts",
-		"./src/**/*.sol"
+		"./src/**/*.sol",
+		"typechain-types"
 	],
 	"devDependencies": {
 		"@nomicfoundation/hardhat-toolbox": "^2.0.2",

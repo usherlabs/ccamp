@@ -1,8 +1,8 @@
 // const localRequire = createRequire(import.meta.url);
 import localCanisterIds from '@ccamp/canisters/.dfx/local/canister_ids.json';
 import remoteCanisterIds from '@ccamp/canisters/canister_ids.json';
-import { Locker__factory } from '@ccamp/contracts';
 import lockerContractAddresses from '@ccamp/contracts/address.json';
+import { Locker__factory } from '@ccamp/contracts/typechain-types/index';
 import { ActorSubclass, Agent, HttpAgent } from '@dfinity/agent';
 import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
 import { Principal } from '@dfinity/principal';
@@ -41,7 +41,8 @@ export class CCAMPClient {
 			);
 
 		// Convert the private key to a Buffer and generate a keypair
-		const privateKey = Buffer.from(ethereumPrivateKey, 'hex');
+		const strippedPK = safeEthereumPrivateKey.replace('0x', '');
+		const privateKey = Buffer.from(strippedPK, 'hex');
 		this.identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
 
 		// use keypair to generate an agent
@@ -61,6 +62,10 @@ export class CCAMPClient {
 			remittance: baseFile['remittance'][baseFileKey],
 		};
 		this.env = env;
+	}
+
+	getPrincipal() {
+		return this.agent.getPrincipal();
 	}
 
 	getCanisterInstance(
@@ -93,7 +98,7 @@ export class CCAMPClient {
 		const dcCanister = this.getCanisterInstance(CANISTER_TYPES.DATA_COLLECTION);
 
 		return {
-			pdcCanister ,
+			pdcCanister,
 			remittanceCanister,
 			dcCanister,
 		};
