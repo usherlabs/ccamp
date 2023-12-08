@@ -21,7 +21,7 @@ const config = [
 			file: 'dist/pkg/ccamp-lib.d.ts',
 			format: 'es',
 		},
-		plugins: [dts()],
+		plugins: [nodeResolve(), commonjs(), dts({ respectExternal: true })],
 	},
 ];
 export default config;
