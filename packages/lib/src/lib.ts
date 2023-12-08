@@ -24,9 +24,9 @@ import { prependKeyWith0x } from './utils/functions';
 export class CCAMPClient {
 	public agent: Agent;
 	public canisterIds: CanisterIds;
-	public actors = canisterActors;
 	public env: Environment;
 	public identity: Secp256k1KeyIdentity;
+	public actors = canisterActors;
 
 	// initialise a constructor with your private key and the url of the rpc you want to connect to
 	constructor(

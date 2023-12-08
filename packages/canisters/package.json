@@ -16,7 +16,9 @@
 	],
 	"main": "",
 	"files": [
-		"./src/declarations",
+		"./src/declarations/data_collection",
+		"./src/declarations/protocol_data_collection",
+		"./src/declarations/remittance",
 		"./.dfx"
 	],
 	"type": "module",
