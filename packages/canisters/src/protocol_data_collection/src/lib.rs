@@ -64,11 +64,15 @@ pub fn get_remittance_canister() -> RemittanceSubscriber {
 
 #[update]
 pub fn add_publisher(principal: Principal) {
+    lib::owner::only_owner();
+
     WHITELISTED_PUBLISHERS.with(|rc| rc.borrow_mut().insert(principal, true));
 }
 
 #[update]
 pub fn remove_publisher(principal: Principal) {
+    lib::owner::only_owner();
+
     WHITELISTED_PUBLISHERS.with(|rc| rc.borrow_mut().remove(&principal));
 }
 
