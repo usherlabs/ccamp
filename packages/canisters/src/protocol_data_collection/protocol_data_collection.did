@@ -10,11 +10,15 @@ type RemittanceCanister = record {
 service : {
 	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (canister_name : text) query;
+	"get_caller": () -> (caller_princpial: principal) query;
 
 	"is_subscribed" : (canister_principal : principal) -> (is_subscribed : bool) query;
 	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister) query;
 
 	"subscribe" : () -> ();
+	"add_publisher" : (publisher_principal : principal) -> ();
+	"remove_publisher" : (publisher_principal : principal) -> ();
 	"manual_publish" : (array_of_json_events : text) -> ();
+	"process_event" : (array_of_json_events : text) -> ();
 	"set_remittance_canister" : (canister_principal : principal) -> ();
 };

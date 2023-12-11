@@ -1,19 +1,19 @@
 use candid::Principal;
 use ic_cdk::{caller, storage};
 use ic_cdk_macros::*;
-use remittance::Environment;
 
 use core::panic;
 use std::{cell::RefCell, collections::HashMap};
 use utils::vec_u8_to_string;
 
-mod ecdsa;
-mod ethereum;
 mod owner;
 mod random;
 mod remittance;
 mod utils;
-use lib;
+use lib::{
+    self,
+    ethereum::{recover_address_from_eth_signature, sign_message}, remittance::{Config, Environment},
+};
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
@@ -28,7 +28,7 @@ thread_local! {
     static REMITTANCE_RECIEPTS: RefCell<remittance::RemittanceRecieptsStore> = RefCell::default();
     static CANISTER_BALANCE: RefCell<remittance::CanisterBalanceStore> = RefCell::default();
 
-    static CONFIG: RefCell<remittance::Config> = RefCell::default();
+    static CONFIG: RefCell<Config> = RefCell::default();
 }
 
 // ----------------------------------- init hooks
@@ -41,7 +41,7 @@ fn init(env_opt: Option<Environment>) {
     if let Some(env) = env_opt {
         CONFIG.with(|s| {
             let mut state = s.borrow_mut();
-            *state = remittance::Config::from(env);
+            *state = Config::from(env);
         })
     }
 }
@@ -170,8 +170,8 @@ async fn remit(
     proof: String,
 ) -> remittance::RemittanceReply {
     // make sure the 'proof' is a signature of the amount by the provided address
-    let _derived_address = ethereum::recover_address_from_eth_signature(proof, format!("{amount}"))
-        .expect("INVALID_SIGNATURE");
+    let _derived_address =
+        recover_address_from_eth_signature(proof, format!("{amount}")).expect("INVALID_SIGNATURE");
 
     // make sure the signature belongs to the provided account
     assert!(
@@ -244,7 +244,8 @@ async fn remit(
         }
 
         // generate a signature for these parameters
-        let signature_reply = ethereum::sign_message(&message_hash)
+        let config_store = CONFIG.with(|store| store.borrow().clone());
+        let signature_reply = sign_message(&message_hash, &config_store)
             .await
             .expect("ERROR_SIGNING_MESSAGE");
         let signature_string = format!("0x{}", signature_reply.signature_hex);
@@ -374,16 +375,16 @@ async fn get_reciept(dc_canister: Principal, nonce: u64) -> remittance::Remittan
 }
 
 #[update]
-async fn public_key() -> ecdsa::PublicKeyReply {
+async fn public_key() -> lib::ecdsa::PublicKeyReply {
     let config = crate::CONFIG.with(|c| c.borrow().clone());
 
-    let request = ecdsa::ECDSAPublicKey {
+    let request = lib::ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
         key_id: config.key.to_key_id(),
     };
 
-    let (res,): (ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(
+    let (res,): (lib::ecdsa::ECDSAPublicKeyReply,) = ic_cdk::call(
         Principal::management_canister(),
         "ecdsa_public_key",
         (request,),
@@ -392,10 +393,10 @@ async fn public_key() -> ecdsa::PublicKeyReply {
     .map_err(|e| format!("ECDSA_PUBLIC_KEY_FAILED {}", e.1))
     .unwrap();
 
-    let address =
-        ethereum::get_address_from_public_key(res.public_key.clone()).expect("INVALID_PUBLIC_KEY");
+    let address = lib::ethereum::get_address_from_public_key(res.public_key.clone())
+        .expect("INVALID_PUBLIC_KEY");
 
-    ecdsa::PublicKeyReply {
+    lib::ecdsa::PublicKeyReply {
         sec1_pk: hex::encode(res.public_key),
         etherum_pk: address,
     }
@@ -420,7 +421,7 @@ fn pre_upgrade() {
         cloned_is_pdc_canister,
         dc_canisters,
         remittance_reciepts_store,
-        config_store
+        config_store,
     ))
     .unwrap()
 }
@@ -445,7 +446,7 @@ async fn post_upgrade() {
         HashMap<Principal, bool>,
         Vec<Principal>,
         remittance::RemittanceRecieptsStore,
-        remittance::Config,
+        Config,
     ) = storage::stable_restore().unwrap();
     //  restore by reassigning to vairiables
     REMITTANCE.with(|r| *r.borrow_mut() = cloned_available_balance_store);

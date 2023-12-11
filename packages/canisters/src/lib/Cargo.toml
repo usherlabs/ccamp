@@ -11,3 +11,6 @@ ic-cdk = "0.5.1"
 ic-cdk-macros = "0.5.1"
 serde = "1.0.126"
 serde_derive = "1.0.126" 
+easy-hasher = "2.2.1"
+hex = "0.4.3"
+libsecp256k1 = { version = "0.6.0", default-features = false, features = ["lazy-static-context"] }

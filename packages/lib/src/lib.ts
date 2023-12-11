@@ -1,9 +1,9 @@
 // const localRequire = createRequire(import.meta.url);
 import localCanisterIds from '@ccamp/canisters/.dfx/local/canister_ids.json';
 import remoteCanisterIds from '@ccamp/canisters/canister_ids.json';
-import { Locker__factory } from '@ccamp/contracts';
 import lockerContractAddresses from '@ccamp/contracts/address.json';
-import { Agent, HttpAgent } from '@dfinity/agent';
+import { Locker__factory } from '@ccamp/contracts/typechain-types/index';
+import { ActorSubclass, Agent, HttpAgent } from '@dfinity/agent';
 import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
 import { Principal } from '@dfinity/principal';
 import { ethers } from 'ethers';
@@ -13,7 +13,9 @@ import erc20ABI from './abi/erc20.json';
 import {
 	CanisterIds,
 	CanisterType,
+	DataCollectionCanister,
 	Environment,
+	ProtocolDataCollectionCanister,
 	RemittanceCanister,
 } from './types';
 import { CANISTER_TYPES, canisterActors, ENV, HOSTS } from './utils/constants';
@@ -22,8 +24,9 @@ import { prependKeyWith0x } from './utils/functions';
 export class CCAMPClient {
 	public agent: Agent;
 	public canisterIds: CanisterIds;
-	public actors = canisterActors;
 	public env: Environment;
+	public identity: Secp256k1KeyIdentity;
+	public actors = canisterActors;
 
 	// initialise a constructor with your private key and the url of the rpc you want to connect to
 	constructor(
@@ -38,13 +41,14 @@ export class CCAMPClient {
 			);
 
 		// Convert the private key to a Buffer and generate a keypair
-		const privateKey = Buffer.from(ethereumPrivateKey, 'hex');
-		const identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
+		const strippedPK = safeEthereumPrivateKey.replace('0x', '');
+		const privateKey = Buffer.from(strippedPK, 'hex');
+		this.identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
 
 		// use keypair to generate an agent
 		const host = HOSTS[env];
 		this.agent = new HttpAgent({
-			identity: identity,
+			identity: this.identity,
 			host: host,
 			fetch,
 		});
@@ -60,10 +64,14 @@ export class CCAMPClient {
 		this.env = env;
 	}
 
+	getPrincipal() {
+		return this.agent.getPrincipal();
+	}
+
 	getCanisterInstance(
 		canisterType: CanisterType,
 		overrides: { canisterId?: string } = {},
-	) {
+	): ActorSubclass<any> {
 		// initialise an instance of the pdc canister and return it
 		const createActor = canisterActors[canisterType];
 		const actor = createActor(
@@ -73,6 +81,27 @@ export class CCAMPClient {
 			},
 		);
 		return actor;
+	}
+
+	getCCampCanisters(): {
+		pdcCanister: ProtocolDataCollectionCanister;
+		remittanceCanister: RemittanceCanister;
+		dcCanister: DataCollectionCanister;
+	} {
+		const pdcCanister = this.getCanisterInstance(
+			CANISTER_TYPES.PROTOCOL_DATA_COLLECTION,
+		) as ProtocolDataCollectionCanister;
+
+		const remittanceCanister = this.getCanisterInstance(
+			CANISTER_TYPES.REMITTANCE,
+		);
+		const dcCanister = this.getCanisterInstance(CANISTER_TYPES.DATA_COLLECTION);
+
+		return {
+			pdcCanister,
+			remittanceCanister,
+			dcCanister,
+		};
 	}
 
 	async approveLockerContract(
@@ -92,7 +121,7 @@ export class CCAMPClient {
 			);
 
 		this._logger(
-			`CCAMPClient.approveLockerContract: Approving Logger contract:${lockerContractAddress} for amount:${amountToApprove}`,
+			`CCAMPClient.approveLockerContract: Approving Locker contract:${lockerContractAddress} for amount:${amountToApprove}`,
 		);
 		// get the erc20 contract
 		const contract = new ethers.Contract(erc20TokenAddress, erc20ABI, signer);

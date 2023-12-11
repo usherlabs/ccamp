@@ -1,6 +1,6 @@
 {
   "name": "@ccamp/lib",
-  "version": "1.0.12",
+  "version": "1.11.3",
   "description": "The javascript library for interacting with the ccamp",
   "files": [
     "dist/pkg",

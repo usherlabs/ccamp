@@ -28,7 +28,7 @@
 			"@tests/*": ["____tests____/*"]
 		}
 	},
-	"exclude": ["node_modules", "build", "dist"],
+	"exclude": ["node_modules", "build", "dist", "____tests____"],
 	"include": ["**/*.ts"],
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]

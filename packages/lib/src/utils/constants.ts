@@ -6,7 +6,7 @@ import { CanisterType, Environment } from '../types';
 export const ENV = {
 	prod: 'prod',
 	dev: 'dev',
-} as Record<string, Environment>;
+} as Record<Environment, Environment>;
 
 export const HOSTS = {
 	[ENV.dev]: 'http://127.0.0.1:4943',

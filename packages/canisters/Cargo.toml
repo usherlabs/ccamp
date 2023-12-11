@@ -1,7 +1,8 @@
 [workspace]
+resolver = "1"
 members = [
     "src/remittance",
     "src/data_collection",
     "src/protocol_data_collection",
-    "src/lib"
+    "src/lib",
 ]

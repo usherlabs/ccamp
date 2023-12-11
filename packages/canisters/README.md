@@ -1,3 +1,4 @@
+
 ## [Canisters](https://github.com/usherlabs/ccamp/tree/main/packages/canisters)
 A detailed overview of rust canisters can be found [here](https://internetcomputer.org/docs/current/developer-docs/backend/rust/).
 The canisters serve as the main point of interaction for users of the protocol. There are three canisters which serve as the backbone of the protocol and they are the remittance canister, the protocol data collection canister (PDC) and the data collection canister.
@@ -76,12 +77,29 @@ dfx canister call data_collection is_subscribed '(principal "be2us-64aaa-aaaaa-q
 
 #### Protocol Data Collection Canister
 
+
 - Register a remittance canister to the PDC.
 ```
 dfx canister call protocol_data_collection set_remittance_canister '(principal "be2us-64aaa-aaaaa-qaabq-cai")' --network ic
 
 **parameters**
 "be2us-64aaa-aaaaa-qaabq-cai": The address of the remittance canister.
+```
+
+- whitelist a publisher to be able to push the PDC.
+```
+dfx canister call protocol_data_collection add_publisher '(principal "be2us-64aaa-aaaaa-qaabq-cai")' --network ic
+
+**parameters**
+"be2us-64aaa-aaaaa-qaabq-cai": The principal we want to whitelist to push events
+```
+
+- publish ethereum events and logstore validations
+```
+dfx canister call protocol_data_collection process_event '("{"source":{}, "validations":[]}")' --network ic
+
+**parameters**
+"be2us-64aaa-aaaaa-qaabq-cai": The principal we want to whitelist to push events
 ```
 
 - Manually publish event data to the registered remittance canister.
@@ -265,3 +283,7 @@ npm start
 ```
 
 Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
+
+<!-- new commands tobe documented -->
+<!-- dfx canister call protocol_data_collection a
+dd_publisher '(principal "qtyrj-5d7hy-yotni-4pnny-4vxak-pgha6-6gxas-7k52m-pqxkp-qa2oz-zqe")' -->

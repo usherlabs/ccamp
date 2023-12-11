@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::ecdsa;
+use crate::{ecdsa, remittance::Config};
 use ic_cdk::export::{
     candid::CandidType,
     serde::{Deserialize, Serialize},
@@ -86,9 +86,7 @@ impl EcdsaKeyIds {
     }
 }
 
-pub async fn derive_pk() -> Vec<u8> {
-    let config = crate::CONFIG.with(|c| c.borrow().clone());
-
+pub async fn derive_pk(config:&Config) -> Vec<u8> {
     let request = ecdsa::ECDSAPublicKey {
         canister_id: None,
         derivation_path: vec![],
