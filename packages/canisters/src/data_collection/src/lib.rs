@@ -1,10 +1,7 @@
 use candid::Principal;
 use ic_cdk::storage;
 use ic_cdk_macros::*;
-use lib::RemittanceSubscriber;
-
-mod remittance;
-
+use lib::{dc::publish_json_to_remittance, RemittanceSubscriber};
 
 // @dev testing command
 #[query]
@@ -53,10 +50,12 @@ fn is_subscribed(canister_principal: Principal) -> bool {
 // which would be the remittance model
 // so when we have some new data, we would publish it to the remittance model
 #[update]
-async fn manual_publish(json_data: String) {
+async fn manual_publish(json_data: String) -> Result<(), String> {
     // create a dummy remittance object we can publish until we implement data collection
     // which would then generate the data instead of hardcoding it
-    let _ = remittance::publish_json(json_data).await;
+    let response = publish_json_to_remittance(json_data).await;
+
+    response
 }
 
 // --------------------------- upgrade hooks ------------------------- //

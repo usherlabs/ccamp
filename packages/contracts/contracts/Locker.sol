@@ -16,6 +16,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     bool initialized;
     string public chainId;
     address public remittanceCanister;
+    address ZER0_ADDRESS = 0x0000000000000000000000000000000000000000;
 
     mapping(bytes => bool) usedSignatures;
     mapping(bytes32 => mapping(address => uint256)) public canisters; //keccak256(principal) => tokenAddress => amountDeposited
@@ -24,6 +25,18 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, address token);
     event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, address token);
     event UpdateRemittanceCanister(address remittanceCanister);
+
+    function depositToken(string calldata _canisterId) public nonReentrant payable {
+        uint256 _amount = msg.value;
+        address _token = ZER0_ADDRESS;
+
+        require(bytes(_canisterId).length == 27, "INVALID_CANISTERID");
+        require(_amount > 0, "amount == 0");
+
+        canisters[keccak256(bytes(_canisterId))][_token] += _amount;
+
+        emit FundsDeposited(_canisterId, msg.sender, _amount, chainId, _token);
+    }
 
     function initialize(address _remittanceCanister, string calldata _chainId) public initializer {
         __Ownable_init();

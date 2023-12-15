@@ -1,17 +1,20 @@
 [package]
-name = "lib"
+name = "token"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 candid = "0.7.4"
 ic-cdk = "0.5.1"
 ic-cdk-macros = "0.5.1"
+ic-cdk-timers = "0.1.1"
+icrc-ledger-types = "0.1.1"
+lib = {path = "../lib" }
 serde = "1.0.126"
-serde_derive = "1.0.126" 
+serde_derive = "1.0.126"
 serde_json = "1.0"
-easy-hasher = "2.2.1"
-hex = "0.4.3"
-libsecp256k1 = { version = "0.6.0", default-features = false, features = ["lazy-static-context"] }
