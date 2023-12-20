@@ -26,7 +26,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, address token);
     event UpdateRemittanceCanister(address remittanceCanister);
 
-    function depositToken(string calldata _canisterId) public nonReentrant payable {
+    function depositTokens(string calldata _canisterId) public nonReentrant payable {
         uint256 _amount = msg.value;
         address _token = ZER0_ADDRESS;
 
