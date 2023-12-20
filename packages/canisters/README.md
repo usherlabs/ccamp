@@ -1,3 +1,56 @@
+## ICP canisters
+Welcome to your new canisters project and to the internet computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
+
+To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
+
+To learn more before you start working with canisters, see the following documentation available online:
+
+- [Quick Start](https://internetcomputer.org/docs/quickstart/quickstart-intro)
+- [SDK Developer Tools](https://internetcomputer.org/docs/developers-guide/sdk-guide)
+- [Rust Canister Devlopment Guide](https://internetcomputer.org/docs/rust-guide/rust-intro)
+- [ic-cdk](https://docs.rs/ic-cdk)
+- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
+- [Candid Introduction](https://internetcomputer.org/docs/candid-guide/candid-intro)
+- [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.icp0.io)
+
+If you want to start working on your project right away, you might want to try the following commands:
+
+```bash
+cd canisters/
+dfx help
+dfx canister --help
+```
+
+## Running the project locally
+
+If you want to test your project locally, you can use the following commands:
+
+```bash
+# Starts the replica, running in the background
+dfx start --background
+
+# Deploys your canisters to the replica and generates your candid interface
+dfx deploy
+```
+
+Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
+
+If you have made changes to your backend canister, you can generate a new candid interface with
+
+```bash
+npm run generate
+```
+
+at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
+
+If you are making frontend changes, you can start a development server with
+
+```bash
+npm start
+```
+
+Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
+
 
 ## [Canisters](https://github.com/usherlabs/ccamp/tree/main/packages/canisters)
 A detailed overview of rust canisters can be found [here](https://internetcomputer.org/docs/current/developer-docs/backend/rust/).
@@ -228,65 +281,6 @@ dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-ca
 "bkyz2-fmaaa-aaaaa-qaaaq-cai": The principal of the data collection canister responsible for managing funds of the user.
 "12095196426242356980": The nonce provided when a withdrawal was requested.
 ```
-
-
-
-## ICP canisters
-Welcome to your new canisters project and to the internet computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
-
-To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
-
-To learn more before you start working with canisters, see the following documentation available online:
-
-- [Quick Start](https://internetcomputer.org/docs/quickstart/quickstart-intro)
-- [SDK Developer Tools](https://internetcomputer.org/docs/developers-guide/sdk-guide)
-- [Rust Canister Devlopment Guide](https://internetcomputer.org/docs/rust-guide/rust-intro)
-- [ic-cdk](https://docs.rs/ic-cdk)
-- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
-- [Candid Introduction](https://internetcomputer.org/docs/candid-guide/candid-intro)
-- [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.icp0.io)
-
-If you want to start working on your project right away, you might want to try the following commands:
-
-```bash
-cd canisters/
-dfx help
-dfx canister --help
-```
-
-## Running the project locally
-
-If you want to test your project locally, you can use the following commands:
-
-```bash
-# Starts the replica, running in the background
-dfx start --background
-
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
-```
-
-Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
-
-If you have made changes to your backend canister, you can generate a new candid interface with
-
-```bash
-npm run generate
-```
-
-at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
-
-If you are making frontend changes, you can start a development server with
-
-```bash
-npm start
-```
-
-Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
-
-<!-- new commands tobe documented -->
-<!-- dfx canister call protocol_data_collection a
-dd_publisher '(principal "qtyrj-5d7hy-yotni-4pnny-4vxak-pgha6-6gxas-7k52m-pqxkp-qa2oz-zqe")' -->
 
 
 # CCAMP Example: Cross-Chain Liquidity
