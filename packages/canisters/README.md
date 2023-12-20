@@ -299,15 +299,15 @@ In this example, we showcase a comprehensive solution for transferring liquidity
  The Graph Indexer node plays a crucial role in indexing events emitted from the corresponding locker contract and storing it to a database.
 
 3. **Relayer Indexer Node:**
-  Indexed events stored in the postgres database are validated using the Log Store Network programs. When there are enough validations for a particular event, this node is responsible for pushing events and their validations which include ECDSA that can be verified by the ICP canisters.
+  Indexed events stored in the postgres database are validated using the Log Store Network. The network publishes validations for each event to be validated to a stream. When there are enough validations for a particular event, this node is responsible for pushing events and their validations which include ECDSA signatures that can be verified by the ICP canisters to ensure the data has not been tampered with.
 
-4. **Protocol Data Collection canister:**
+1. **Protocol Data Collection canister:**
    The PDC canister is responsible for receiving and validating the events pushed by the Relayer Indexer node, and then updating the remittance canister which is responsible for maintaining the balance of each use and canister on the protocol.
 
-5. **Bridge Data Collection canister:**
-  Using this canister, one can either perform a *mint* operation after funds have been deposited into the protocol. Performing a mint operation would transfer some *ccMatic tokens* to the ICP account of the user performing the mint operation while taking ownership of their available funds on the protocol, and when a *burn* operation is performed, the locked funds on the protocol would be available to the user for withdrawal.
+2. **Bridge Data Collection canister:**
+  Using this canister, one can either perform a *mint* operation after funds have been deposited into the protocol. Performing a mint operation would transfer some *ccMatic tokens* to the ICP account of the user performing the mint operation while taking their funds on the CCAMP protocol as collateral, and when a *burn* operation is performed, the locked funds on the protocol would be available to the user for withdrawal.
 
-6. **Remittance canister:**
+1. **Remittance canister:**
  Provided the user has some balance on the protocol, a request for withdrawal can be made. This request returns several parameters which can be used to facilitate a withdrawal from the locker contract.
 
 ### Internal Architecture Note
@@ -327,7 +327,9 @@ Before you begin, ensure you have the following:
 - A running indexer relayer node linked to the graph node.
 
 ### Deploying and configuring the canisters
-`Note: to deploy these canisters in production environment, add --network ic` to the end of the dfx commands. There are two canisters to be deployed which are the Bridge Data Collection canister and the Token canister.
+Note: to deploy these canisters in production environment, add `--network ic` to the end of the dfx commands.
+
+There are two canisters to be deployed which are the Bridge Data Collection canister and the Token canister.
 The Bridge Data Collection canister is responsible for minting and burning tokens created by the Token canister using liquidity from the CCAMP protocol as collateral, and the token ccMatic is an IERC20 compliant token on the ICP blockchain.
 
 #### Deploying the canisters
@@ -343,7 +345,7 @@ dfx canister call token set_dc_canister '(principal "BRIDGE_DC_CANISTER_PRINCIPA
 ```
 
 #### Configuring the DC Canister
-Configuration of the DC canister involves syncing it with the remittance canister and setting the value of the token canister we want to mint and burn from.
+Configuration of the DC canister involves syncing it with the remittance canister and setting the principal of the token canister we want to mint and burn from.
 
 **Setting the principal of the token canister**
  ```
