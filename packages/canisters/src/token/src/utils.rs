@@ -22,7 +22,7 @@ pub struct SupportedStandards {
 pub fn generate_metadata() -> MetaDataType {
     let mut new_map = HashMap::new();
 
-    new_map.insert(String::from("icrc1:decimals"), Variant::Nat((DECIMALS)));
+    new_map.insert(String::from("icrc1:decimals"), Variant::Nat(DECIMALS));
     new_map.insert(
         String::from("icrc1:name"),
         Variant::Text(String::from(TOKEN_NAME)),
