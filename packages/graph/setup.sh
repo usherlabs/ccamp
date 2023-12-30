@@ -8,10 +8,6 @@ if ! which docker 2>&1 > /dev/null; then
     exit 1
 fi
 
-if ! which docker-compose 2>&1 > /dev/null; then
-    echo "Please install 'docker-compose' first"
-    exit 1
-fi
 
 if ! which jq 2>&1 > /dev/null; then
     echo "Please install 'jq' first"
