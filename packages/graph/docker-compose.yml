@@ -62,7 +62,7 @@ services:
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
 
     volumes:
-      - ./data/postgresql:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
       
 volumes:
   pgadmin-data:

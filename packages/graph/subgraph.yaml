@@ -6,9 +6,9 @@ dataSources:
     name: Locker
     network: mainnet
     source:
-      address: "0xFbFD3E64474d24890e30D52BF44Bf01cAC432BEC"
+      address: "0xc2f58141440314f32568496FECdFd0CceaBF1627"
       abi: Locker
-      startBlock: 51728952
+      startBlock: 51732752
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
