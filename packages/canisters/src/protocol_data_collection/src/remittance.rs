@@ -5,7 +5,7 @@ use crate::logstore::types::JSONPayload;
 use candid::Principal;
 use ic_cdk::api::call::RejectionCode;
 use lib::{ethereum::recover_address_from_eth_signature, Event};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 pub async fn publish_event(json_data: String) -> Result<(), String> {
     // pub async fn publish_json(json_data: String) -> Result<(), String> {

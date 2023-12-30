@@ -1,4 +1,7 @@
 {
+  "bridge_data_collection": {
+    "ic": "bt7oj-zaaaa-aaaal-adkfa-cai"
+  },
   "data_collection": {
     "ic": "hxxjd-iiaaa-aaaal-ac3cq-cai"
   },
@@ -7,5 +10,8 @@
   },
   "remittance": {
     "ic": "h6uc7-6aaaa-aaaal-ac3da-cai"
+  },
+  "token": {
+    "ic": "bu6i5-uyaaa-aaaal-adkfq-cai"
   }
 }

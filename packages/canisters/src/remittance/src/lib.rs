@@ -413,6 +413,8 @@ fn pre_upgrade() {
     let dc_canisters = DC_CANISTERS.with(|store| store.borrow().clone());
     let remittance_reciepts_store = REMITTANCE_RECIEPTS.with(|store| store.borrow().clone());
     let config_store = CONFIG.with(|store| store.borrow().clone());
+    let canister_balance_store = CANISTER_BALANCE.with(|store| store.borrow().clone());
+    
     // save cloned memory
     storage::stable_save((
         cloned_available_balance_store,
@@ -422,6 +424,7 @@ fn pre_upgrade() {
         dc_canisters,
         remittance_reciepts_store,
         config_store,
+        canister_balance_store
     ))
     .unwrap()
 }
@@ -430,6 +433,7 @@ fn pre_upgrade() {
 async fn post_upgrade() {
     lib::owner::init_owner();
     random::init_ic_rand();
+
     // load the variables from memory
     let (
         cloned_available_balance_store,
@@ -439,6 +443,7 @@ async fn post_upgrade() {
         cloned_dc_canisters,
         cloned_remittance_reciepts,
         cloned_config,
+        cloned_canister_balance
     ): (
         remittance::AvailableBalanceStore,
         remittance::WithheldBalanceStore,
@@ -447,7 +452,9 @@ async fn post_upgrade() {
         Vec<Principal>,
         remittance::RemittanceRecieptsStore,
         Config,
+        remittance::CanisterBalanceStore
     ) = storage::stable_restore().unwrap();
+
     //  restore by reassigning to vairiables
     REMITTANCE.with(|r| *r.borrow_mut() = cloned_available_balance_store);
     WITHHELD_REMITTANCE.with(|wr| *wr.borrow_mut() = cloned_witheld_balance_store);
@@ -456,5 +463,6 @@ async fn post_upgrade() {
     DC_CANISTERS.with(|dc| *dc.borrow_mut() = cloned_dc_canisters);
     REMITTANCE_RECIEPTS.with(|rr| *rr.borrow_mut() = cloned_remittance_reciepts);
     CONFIG.with(|c| *c.borrow_mut() = cloned_config);
+    CANISTER_BALANCE.with(|c| *c.borrow_mut() = cloned_canister_balance);
 }
 // --------------------------- upgrade hooks ------------------------- //

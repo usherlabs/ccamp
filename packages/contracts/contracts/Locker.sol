@@ -16,6 +16,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     bool initialized;
     string public chainId;
     address public remittanceCanister;
+    address ZER0_ADDRESS = 0x0000000000000000000000000000000000000000;
 
     mapping(bytes => bool) usedSignatures;
     mapping(bytes32 => mapping(address => uint256)) public canisters; //keccak256(principal) => tokenAddress => amountDeposited
@@ -24,6 +25,18 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
     event FundsWithdrawn(string canisterId, address indexed account, uint amount, string chain, address token);
     event WithdrawCanceled(string canisterId, address indexed account, uint amount, string chain, address token);
     event UpdateRemittanceCanister(address remittanceCanister);
+
+    function depositTokens(string calldata _canisterId) public nonReentrant payable {
+        uint256 _amount = msg.value;
+        address _token = ZER0_ADDRESS;
+
+        require(bytes(_canisterId).length == 27, "INVALID_CANISTERID");
+        require(_amount > 0, "amount == 0");
+
+        canisters[keccak256(bytes(_canisterId))][_token] += _amount;
+
+        emit FundsDeposited(_canisterId, msg.sender, _amount, chainId, _token);
+    }
 
     function initialize(address _remittanceCanister, string calldata _chainId) public initializer {
         __Ownable_init();
@@ -80,7 +93,7 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         address _recipient
     ) public nonReentrant returns(bool) {
         require(initialized, "CONTRACT_UNINITIALIZED");
-        require(getBalance(_canisterId, _token) >= _amount, "WITHDRAW_AMOUNT > CONTRACT_BALANCE");
+        require(getBalance(_canisterId, _token) >= _amount, "WITHDRAW_AMOUNT > CANISTER_TOKEN_BALANCE");
         require(!usedSignatures[_signature], "USED_SIGNATURE");
 
         bytes32 dataHash = keccak256(abi.encodePacked(_nonce, _amount, msg.sender, chainId, _canisterId, _token));
@@ -91,6 +104,53 @@ contract Locker is Initializable, UUPSUpgradeable, OwnableUpgradeable, Reentranc
         emit FundsWithdrawn(_canisterId, msg.sender, _amount, chainId, _token);
         bool success = IERC20Upgradeable(_token).transfer(_recipient, _amount);
         return success;
+    }
+
+    function withdrawTokensTo(
+        string calldata _canisterId,
+        uint _nonce,
+        uint _amount,
+        bytes calldata _signature,
+        address _recipient
+    ) public nonReentrant returns(bool) {
+        address _token = ZER0_ADDRESS;
+
+        require(initialized, "CONTRACT_UNINITIALIZED");
+        require(_amount > getBalance(), "INSUCCIFIENT_CONTRACT_BALANCE");
+        require(getBalance(_canisterId, _token) >= _amount, "WITHDRAW_AMOUNT > CANISTER_TOKEN_BALANCE");
+        require(!usedSignatures[_signature], "USED_SIGNATURE");
+
+        bytes32 dataHash = keccak256(abi.encodePacked(_nonce, _amount, msg.sender, chainId, _canisterId, _token));
+        require(validateSignature(dataHash, _signature), "INVALID_SIGNATURE");
+
+        usedSignatures[_signature] = true;
+
+        emit FundsWithdrawn(_canisterId, msg.sender, _amount, chainId, _token);
+        (bool success, bytes memory data) = payable(_recipient).call{value: _amount}("");
+    
+        return success;
+    }
+
+    function withdrawTokens(
+        string calldata _canisterId,
+        uint _nonce,
+        uint _amount,
+        bytes calldata _signature
+    ) public nonReentrant returns(bool) {
+
+        bool success = withdrawTokensTo(
+            _canisterId,
+            _nonce,
+            _amount,
+            _signature,
+            msg.sender
+        );
+    
+        return success;
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
     }
 
     function cancelWithdraw(

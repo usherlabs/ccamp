@@ -1,0 +1,121 @@
+// Number of nanoseconds since the UNIX epoch in UTC timezone.
+type Timestamp = nat64;
+
+// Number of nanoseconds between two [Timestamp]s.
+type Duration = nat64;
+
+type Subaccount = blob;
+
+type Account = record {
+	owner : principal;
+	subaccount : opt Subaccount;
+};
+
+type TransferArgs = record {
+	from_subaccount : opt Subaccount;
+	to : Account;
+	amount : nat;
+	fee : opt nat;
+	memo : opt blob;
+	created_at_time : opt Timestamp;
+};
+
+type TransferError = variant {
+	BadFee : record { expected_fee : nat };
+	BadBurn : record { min_burn_amount : nat };
+	InsufficientFunds : record { balance : nat };
+	TooOld;
+	CreatedInFuture : record { ledger_time : Timestamp };
+	Duplicate : record { duplicate_of : nat };
+	TemporarilyUnavailable;
+	GenericError : record { error_code : nat; message : text };
+};
+
+type Value = variant {
+	Nat : nat;
+	Int : int;
+	Text : text;
+	Blob : blob;
+};
+
+type ApproveArgs = record {
+	from_subaccount : opt blob;
+	spender : Account;
+	amount : nat;
+	expected_allowance : opt nat;
+	expires_at : opt nat64;
+	fee : opt nat;
+	memo : opt blob;
+	created_at_time : opt nat64;
+};
+
+type AllowanceArgs = record {
+	account : Account;
+	spender : Account;
+};
+
+type ApproveError = variant {
+	BadFee : record { expected_fee : nat };
+	// The caller does not have enough funds to pay the approval fee.
+	InsufficientFunds : record { balance : nat };
+	// The caller specified the [expected_allowance] field, and the current
+	// allowance did not match the given value.
+	AllowanceChanged : record { current_allowance : nat };
+	// The approval request expired before the ledger had a chance to apply it.
+	Expired : record { ledger_time : nat64 };
+	TooOld;
+	CreatedInFuture : record { ledger_time : nat64 };
+	Duplicate : record { duplicate_of : nat };
+	TemporarilyUnavailable;
+	GenericError : record { error_code : nat; message : text };
+};
+
+type TransferFromError = variant {
+    BadFee : record { expected_fee : nat };
+    BadBurn : record { min_burn_amount : nat };
+    // The [from] account does not hold enough funds for the transfer.
+    InsufficientFunds : record { balance : nat };
+    // The caller exceeded its allowance.
+    InsufficientAllowance : record { allowance : nat };
+    TooOld;
+    CreatedInFuture: record { ledger_time : nat64 };
+    Duplicate : record { duplicate_of : nat };
+    TemporarilyUnavailable;
+    GenericError : record { error_code : nat; message : text };
+};
+
+type TransferFromArgs = record {
+    spender_subaccount : opt blob;
+    from : Account;
+    to : Account;
+    amount : nat;
+    fee : opt nat;
+    memo : opt blob;
+    created_at_time : opt nat64;
+};
+
+service : () -> {
+	"owner" : () -> (owner_principal : text) query;
+	"get_dc_canister" : () -> (principal) query;
+	"set_dc_canister" : (canister_principal : principal) -> ();
+
+	"icrc1_metadata" : () -> (vec record { text; Value }) query;
+	"icrc1_name" : () -> (text) query;
+	"icrc1_symbol" : () -> (text) query;
+	"icrc1_decimals" : () -> (nat8) query;
+	"icrc1_fee" : () -> (nat) query;
+	"icrc1_total_supply" : () -> (nat) query;
+	"icrc1_minting_account" : () -> (opt Account) query;
+	"icrc1_balance_of" : (Account) -> (nat) query;
+	"icrc1_transfer" : (TransferArgs) -> (variant { Ok : nat; Err : TransferError });
+	"icrc1_supported_standards" : () -> (vec record { name : text; url : text }) query;
+
+	"icrc2_approve" : (ApproveArgs) -> (variant { Ok : nat; Err : ApproveError });
+	"icrc2_allowance" : (AllowanceArgs) -> (record { allowance : nat; expires_at : opt nat64 }) query;
+	"icrc2_transfer_from" : (TransferFromArgs) -> (variant { Ok : nat; Err : TransferFromError });
+
+	"mint" : (principal, nat) -> (nat);
+	"total_supply" : () -> (nat);
+	"burn" : (principal, nat) -> (variant { Ok : nat; Err : text });
+	"balance" : () -> (nat);
+};
