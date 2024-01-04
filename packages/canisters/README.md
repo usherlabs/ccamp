@@ -363,46 +363,6 @@ dfx canister call remittance get_reciept '(principal "bkyz2-fmaaa-aaaaa-qaaaq-ca
 
 ```
 
-# CCAMP Example: Cross-Chain Liquidity
-
-## Overview
-
-This is an application of the CCAMP protocol, an example demonstrating the seamless movement of liquidity between EVM Chains and the Internet Computer Protocol (ICP) using smart contracts and canisters.
-
-In this example, we showcase a comprehensive solution for transferring liquidity across different blockchains, specifically between EVM Chains and ICP. The goal is to provide developers with a robust understanding of the mechanisms involved in managing deposits, bridging tokens, and facilitating withdrawals.
-
-### Key Components
-
-1.  **Locker Contract:**
-
-Developers initiate the liquidity movement by depositing tokens into a smart contract which has been deployed and initialised on the Ethereum Virtual Machine (EVM). Events are emitted, capturing essential details such as the responsible DC (Data Center) canister and depositor information.
-
-2.  **Graph Indexer:**
-
-The Graph Indexer node plays a crucial role in indexing events emitted from the corresponding locker contract and storing it to a database.
-
-3.  **Relayer Indexer Node:**
-
-Indexed events stored in the postgres database are validated using the Log Store Network. The network publishes validations for each event to be validated to a stream. When there are enough validations for a particular event, this node is responsible for pushing events and their validations which include ECDSA signatures that can be verified by the ICP canisters to ensure the data has not been tampered with.
-
-1.  **Protocol Data Collection canister:**
-
-The PDC canister is responsible for receiving and validating the events pushed by the Relayer Indexer node, and then updating the remittance canister which is responsible for maintaining the balance of each use and canister on the protocol.
-
-2.  **Bridge Data Collection canister:**
-
-Using this canister, one can either perform a _mint_ operation after funds have been deposited into the protocol. Performing a mint operation would transfer some _ccMatic tokens_ to the ICP account of the user performing the mint operation while taking their funds on the CCAMP protocol as collateral, and when a _burn_ operation is performed, the locked funds on the protocol would be available to the user for withdrawal.
-
-1.  **Remittance canister:**
-
-Provided the user has some balance on the protocol, a request for withdrawal can be made. This request returns several parameters which can be used to facilitate a withdrawal from the locker contract.
-
-### Internal Architecture Note
-
-Since the CCAMP Protocol is ERC20 token compatible, a token address might be mentioned in several places. When dealing with native tokens such as Ether, Matic or which ever token is native to the blockchain the locker contract is deployed on, the token address to be used should be the zero address which is:
-
-`0x0000000000000000000000000000000000000000`
-
 ## Running the code
 
 ### Prerequisites
