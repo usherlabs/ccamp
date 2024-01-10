@@ -1,1 +1,1 @@
-pub const CHAIN_IDENTIFIER:&str = "ethereum:5";
+pub const CHAIN_IDENTIFIER:&str = "ethereum:137";

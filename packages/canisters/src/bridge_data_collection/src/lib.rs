@@ -3,7 +3,9 @@ use std::cell::RefCell;
 use candid::Principal;
 use ic_cdk::storage;
 use ic_cdk_macros::*;
-use lib::{constants::ZERO_ADDRESS, ethereum::recover_address_from_eth_signature, RemittanceSubscriber};
+use lib::{
+    constants::ZERO_ADDRESS, ethereum::recover_address_from_eth_signature, RemittanceSubscriber,
+};
 
 use utils::{
     burn_tokens_from_caller, generate_burn_payload, generate_mint_payload,
@@ -22,7 +24,7 @@ thread_local! {
 pub async fn mint(account: String, signature: String, amount: u128) {
     // validate the signature, which is a signature of the amount to be minted
     let recovered = recover_address_from_eth_signature(signature, amount.to_string()).unwrap();
-    if recovered != account {
+    if recovered.to_lowercase() != account.to_lowercase() {
         panic!(
             "SIGNATURE_VERIFICATION_FAILED:recovered key: {}; public key:{}",
             recovered, account
@@ -52,7 +54,7 @@ pub async fn mint(account: String, signature: String, amount: u128) {
 pub async fn burn(account: String, signature: String, amount: u128) {
     // validate the signature, which is a signature of the amount to be minted
     let recovered = recover_address_from_eth_signature(signature, amount.to_string()).unwrap();
-    if recovered != account {
+    if recovered.to_lowercase() != account.to_lowercase() {
         panic!(
             "SIGNATURE_VERIFICATION_FAILED:recovered key: {}; public key:{}",
             recovered, account
