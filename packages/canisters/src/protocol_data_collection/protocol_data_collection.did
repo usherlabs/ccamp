@@ -13,7 +13,7 @@ service : {
 	"get_caller": () -> (caller_princpial: principal) query;
 
 	"is_subscribed" : (canister_principal : principal) -> (is_subscribed : bool) query;
-	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister) query;
+	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister);
 
 	"subscribe" : () -> ();
 	"add_publisher" : (publisher_principal : principal) -> ();

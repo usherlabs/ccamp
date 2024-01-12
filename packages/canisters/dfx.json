@@ -23,6 +23,22 @@
 			"declarations": {
 				"node_compatibility": true
 			}
+		},
+		"token": {
+			"candid": "src/token/token.did",
+			"package": "token",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
+		},
+		"bridge_data_collection": {
+			"candid": "src/bridge_data_collection/bridge_data_collection.did",
+			"package": "bridge_data_collection",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
 		}
 	},
 	"output_env_file": ".env",

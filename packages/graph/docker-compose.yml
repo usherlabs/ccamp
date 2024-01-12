@@ -19,7 +19,7 @@ services:
       postgres_pass: let-me-in
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'goerli:https://goerli.infura.io/v3/c6ae59cfb0034633b1e34cad22b7914e'
+      ethereum: 'mainnet:https://polygon-mainnet.g.alchemy.com/v2/jAVFicKOmmdShPosRQ4nHGydU8oruma5'
       GRAPH_LOG: info
 
 

@@ -20,21 +20,6 @@ impl EncryptedGroupKey {
     }
 }
 
-// #[derive(Debug, Serialize, Deserialize, Clone)]
-// #[serde(rename_all = "camelCase")]
-
-// pub struct BrokerPayload {
-//     pub log_store_chain_id: String,
-//     pub log_store_channel_id: String,
-//     pub log_store_stream_id: String,
-//     pub address: String,
-//     pub block_hash: String,
-//     pub data: String,
-//     pub log_index: u32,
-//     pub topics: Vec<String>,
-//     pub transaction_hash: String,
-// }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageId {
@@ -137,7 +122,6 @@ impl BrokerVerificationPayload {
     }
 }
 
-// TODO implement the source payload mechanism
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceVerificationPayload {

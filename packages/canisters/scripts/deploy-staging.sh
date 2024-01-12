@@ -9,3 +9,5 @@
 dfx deploy protocol_data_collection --argument '(opt variant { Staging } )' --network ic
 dfx deploy data_collection --network ic
 dfx deploy remittance --argument '(opt variant { Staging } )' --network ic
+dfx deploy bridge_data_collection --network ic
+dfx deploy token --network ic

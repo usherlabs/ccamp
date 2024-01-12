@@ -13,7 +13,15 @@ service : {
 	"is_subscribed" : (canister : principal) -> (bool) query;
 	"get_remittance_canister" : () -> (remittance_canister : RemittanceCanister) query;
 
+	"mint" : (text, text, nat) -> ();
+	"burn" : (text, text, nat) -> ();
+
 	"subscribe" : () -> ();
-	"manual_publish" : (array_of_json_events : text) -> (variant { Ok ; Err : text });
+	"manual_publish" : (array_of_json_events : text) -> ();
 	"set_remittance_canister" : (canister_principal : principal) -> ();
+	"get_user_balance" : (account : text) -> (nat);
+	"get_canister_balance" : () -> (nat);
+
+	"set_token_principal" : (canister_principal : principal) -> ();
+	"get_token_principal" : () -> (principal);
 };

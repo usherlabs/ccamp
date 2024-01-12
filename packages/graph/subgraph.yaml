@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: Locker
-    network: goerli
+    network: mainnet
     source:
-      address: "0xadBBdcdbF9B77720775103dd126346686C1d9011"
+      address: "0xc2f58141440314f32568496FECdFd0CceaBF1627"
       abi: Locker
-      startBlock: 10175118
+      startBlock: 51732752
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
