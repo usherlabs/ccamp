@@ -8,7 +8,7 @@ At its core, CCAMP is a versatile, modular, and custom data-driven Cross-chain A
 
 - The Internet Computer: Providing the backbone for on-chain computation, ensuring the protocol's robust execution.
 - The Log Store Network: Ensuring the availability of highly reliable and cryptographically pure event data, a critical element for informed asset management.
-- Web3 Functions (e.g., Gelato): Facilitating streamlined data relay, connecting the protocol with external data sources.
+- Attestation Oracle (aka., Indexer Relayer): Facilitating streamlined and verifiable data relay from foreign blockchains; connecting the protocol with external data sources.
 - Locker Contracts: These contracts, available in Solidity for EVM and other compatible languages like Rust, play an essential role in asset management and protection across various blockchains.
 
 CCAMP's flexibility, modularity, and data-driven approach make it an ideal choice for those seeking efficient and secure asset management solutions across multiple blockchain networks. It seamlessly combines the power of the Internet Computer, Log Store Network, and Locker Contracts to create a cutting-edge protocol for cross-chain liquidity aggregation management.
@@ -120,3 +120,7 @@ The primary license for the CCAMP is the Business Source License 1.1 (BUSL-1.1),
 ## Contributors
 
 - [Usher Labs](https://usher.so)
+
+## Publications
+
+- [NBTC (ckBTC): Non-Custodial Decentralised BTC Derivative](https://docsend.com/view/a94np5agcj4cwby2) - Jan 30 2024
