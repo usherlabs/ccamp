@@ -1,10 +1,10 @@
 [workspace]
 resolver = "1"
 members = [
+    "src/lib",
     "src/remittance",
     "src/data_collection",
     "src/protocol_data_collection",
-    "src/bridge_data_collection",
-    "src/lib",
-    "src/token",
+    "src/examples/token",
+    "src/examples/bridge_data_collection",
 ]
