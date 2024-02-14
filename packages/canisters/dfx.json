@@ -25,7 +25,7 @@
 			}
 		},
 		"token": {
-			"candid": "src/token/token.did",
+			"candid": "src/examples/token/token.did",
 			"package": "token",
 			"type": "rust",
 			"declarations": {
@@ -33,7 +33,7 @@
 			}
 		},
 		"bridge_data_collection": {
-			"candid": "src/bridge_data_collection/bridge_data_collection.did",
+			"candid": "src/examples/bridge_data_collection/bridge_data_collection.did",
 			"package": "bridge_data_collection",
 			"type": "rust",
 			"declarations": {
