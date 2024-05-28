@@ -39,6 +39,14 @@
 			"declarations": {
 				"node_compatibility": true
 			}
+		},
+		"ic_af" : {
+			"candid": "src/ic_af/ic_af.did",
+			"package": "ic_af",
+			"type": "rust",
+			"declarations": {
+				"node_compatibility": true
+			}
 		}
 	},
 	"output_env_file": ".env",
