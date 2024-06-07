@@ -1,4 +1,4 @@
 service : {
     "verify_data_proof" : (text) -> (text) query;
-    "verify_tls_proof" : (text) -> (text) query;
+    "verify_tls_proof" : (text) -> (text, text) query;
 }
