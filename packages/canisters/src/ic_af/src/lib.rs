@@ -10,6 +10,8 @@ use ic_cdk_macros::*;
 use serde::Deserialize;
 use tlsn_substrings_verifier::proof::{SessionProof, TlsProof};
 
+use lib::ecdsa::{EcdsaKeyIds, SignWithECDSA, SignWithECDSAReply, SignatureReply};
+
 /// Ref : https://docs.rs/candid/latest/candid/types/value/enum.IDLValue.html#variant.Record
 type Metadata = IDLValue;
 
@@ -77,7 +79,7 @@ fn verify_data_proof(data_package : String) -> (String, String) {
 /// verifying the tls proofs
 /// Sample file : ../../../../fixtures/tiwtter_proof.json
 #[update]
-async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse) {
+async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse, String) {
     let tls_proof: TlsProof = serde_json::from_str(tls_proof.as_str()).unwrap();
     
     let TlsProof {
@@ -111,5 +113,27 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse)
     http_res.parse(recv.data()).unwrap();
     let parsed_http_res = ParsedResponse::from(http_res);
 
-    (parsed_http_req, parsed_http_res)
+    let mut bin_data = bincode::serialize(&parsed_http_req).unwrap();
+    bin_data.extend(&bincode::serialize(&parsed_http_res).unwrap());
+
+    let request = SignWithECDSA {
+        message_hash: sha256(bin_data.as_slice()).to_vec(),
+        derivation_path: vec![],
+        key_id: EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+    };
+
+    let (response,): (SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
+        mgmt_canister_id(),
+        "sign_with_ecdsa",
+        (request,),
+        25_000_000_000,
+    )
+    .await
+    .map_err(|e| format!("sign_with_ecdsa failed {}", e.1)).unwrap();
+
+    let reply = SignatureReply {
+        signature_hex: hex::encode(&response.signature),
+    };
+
+    (parsed_http_req, parsed_http_res, reply.signature_hex)
 }

@@ -19,5 +19,5 @@ type parsed_response = record {
 
 service : {
     "verify_data_proof" : (text) -> (text);
-    "verify_tls_proof" : (text) -> (parsed_request, parsed_response);
+    "verify_tls_proof" : (text) -> (parsed_request, parsed_response, text);
 }
