@@ -1,4 +1,23 @@
+type parsed_header = record {
+    name : text;
+    value : vec nat8;
+};
+
+type parsed_request = record {
+    method : opt text;
+    path : opt text;
+    version : opt nat8;
+    headers : vec parsed_header;
+};
+
+type parsed_response = record {
+    version : opt nat8;
+    code : opt nat16;
+    reason : opt text;
+    headers : vec parsed_header;
+};
+
 service : {
-    "verify_data_proof" : (text) -> (text) query;
-    "verify_tls_proof" : (text) -> (text, text) query;
+    "verify_data_proof" : (text) -> (text);
+    "verify_tls_proof" : (text) -> (parsed_request, parsed_response);
 }

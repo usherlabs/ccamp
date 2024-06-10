@@ -1244,6 +1244,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "httparse"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d897f394bad6a705d5f4104762e116a75639e470d80901eed05a860a95cb1904"
+
+[[package]]
 name = "ic-cdk"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1335,15 +1341,20 @@ checksum = "576c539151d4769fb4d1a0c25c4108dd18facd04c5695b02cf2d226ab4e43aa5"
 name = "ic_af"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "candid 0.7.18",
  "dotenv",
+ "hex",
+ "httparse",
  "ic-cdk 0.5.7",
  "ic-cdk-macros 0.5.7",
  "ic-cdk-timers",
+ "lib",
  "p256",
  "serde",
  "serde_derive",
  "serde_json",
+ "sha2 0.10.8",
  "tlsn-substrings-verifier",
 ]
 

@@ -1,6 +1,11 @@
+mod tls_parse;
+
+use tls_parse::{ParsedRequest, ParsedResponse};
 use std::time::SystemTime;
+use std::str::FromStr;
 
 use candid::{parser::value::IDLValue, CandidType};
+use ic_cdk::api::management_canister::main::CanisterId;
 use ic_cdk_macros::*;
 use serde::Deserialize;
 use tlsn_substrings_verifier::proof::{SessionProof, TlsProof};
@@ -46,19 +51,33 @@ struct DataPackage {
     dataPoints: Vec<DataPointPlainObj>,
 }
 
+/// Get the management canister
+fn mgmt_canister_id() -> CanisterId {
+    CanisterId::from_str(&"aaaaa-aa").unwrap()
+}
+
+/// Sha256 hash
+fn sha256(input: &[u8]) -> [u8; 32] {
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(input);
+    hasher.finalize().into()
+}
+
 /// verifying the signatures for data-package
 /// Sample file : ../../../../fixtures/data-package.json
-#[query]
-fn verify_data_proof(data_package : String) -> Result<(), String> {
+#[update]
+fn verify_data_proof(data_package : String) -> (String, String) {
     let data_package : DataPackage = serde_json::from_str(data_package.as_str()).unwrap();
     // todo!();
-    Ok(())
+    (String::new(), String::new())
 }
+
 
 /// verifying the tls proofs
 /// Sample file : ../../../../fixtures/tiwtter_proof.json
-#[query]
-fn verify_tls_proof(tls_proof : String) -> (String, String) {
+#[update]
+async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse) {
     let tls_proof: TlsProof = serde_json::from_str(tls_proof.as_str()).unwrap();
     
     let TlsProof {
@@ -81,8 +100,16 @@ fn verify_tls_proof(tls_proof : String) -> (String, String) {
     sent.set_redacted(b'X');
     recv.set_redacted(b'X');
 
-    let sent_string = String::from_utf8(sent.data().to_vec()).unwrap();
-    let recv_string = String::from_utf8(recv.data().to_vec()).unwrap();
+    // Parsing http request and response
+    let mut headers = [httparse::EMPTY_HEADER; 16];
+    let mut http_req = httparse::Request::new(&mut headers);
+    http_req.parse(sent.data()).unwrap();
+    let parsed_http_req = ParsedRequest::from(http_req);
 
-    (sent_string, recv_string)
+    let mut headers = [httparse::EMPTY_HEADER; 32];
+    let mut http_res = httparse::Response::new(&mut headers);
+    http_res.parse(recv.data()).unwrap();
+    let parsed_http_res = ParsedResponse::from(http_res);
+
+    (parsed_http_req, parsed_http_res)
 }
