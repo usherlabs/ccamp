@@ -25,6 +25,6 @@ type SystemTime = record {
   secs_since_epoch : nat64;
 };
 service : {
-  verify_data_proof : (text) -> (vec DataPackage);
+  verify_data_proof : (text) -> (vec DataPackage, text);
   verify_tls_proof : (text) -> (ParsedRequest, ParsedResponse, text);
 }

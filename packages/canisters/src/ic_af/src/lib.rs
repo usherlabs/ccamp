@@ -27,7 +27,7 @@ fn sha256(input: &[u8]) -> [u8; 32] {
 /// verifying the signatures for data-package
 /// Sample file : ../../../../fixtures/data-package.json
 #[update]
-fn verify_data_proof(redstone_data : String) -> Vec<DataPackage> {
+async fn verify_data_proof(redstone_data : String) -> (Vec<DataPackage>, String) {
     let redstone_data : RedstoneData = serde_json::from_str(redstone_data.as_str()).unwrap();
     let mut signer_bytes = [0u8; 20];
     let mut result = Vec::new();
@@ -39,7 +39,28 @@ fn verify_data_proof(redstone_data : String) -> Vec<DataPackage> {
         result.push(data_package);
     }
 
-    result
+    let bin_data = bincode::serialize(&result).unwrap();
+
+    let request = SignWithECDSA {
+        message_hash: sha256(bin_data.as_slice()).to_vec(),
+        derivation_path: vec![],
+        key_id: EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+    };
+
+    let (response,): (SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
+        mgmt_canister_id(),
+        "sign_with_ecdsa",
+        (request,),
+        25_000_000_000,
+    )
+    .await
+    .map_err(|e| format!("sign_with_ecdsa failed {}", e.1)).unwrap();
+
+    let reply = SignatureReply {
+        signature_hex: hex::encode(&response.signature),
+    };
+
+    (result, reply.signature_hex)
 }
 
 

@@ -1,7 +1,7 @@
 //! Parsing and verifying Redstone datapackages
 //! Ref : https://github.com/redstone-finance/redstone-rust-sdk
 use candid::{types::value::IDLValue, CandidType};
-use serde_derive::Deserialize;
+use serde_derive::{Serialize, Deserialize};
 use std::{time::{Duration, SystemTime, UNIX_EPOCH}, u8};
 use sha3::{Keccak256, Digest};
 
@@ -28,7 +28,7 @@ type Metadata = IDLValue;
 ///     metadata?: Metadata;
 /// }
 /// ```
-#[derive(CandidType, Deserialize)]
+#[derive(CandidType, Deserialize, Serialize)]
 struct DataPointPlainObj {
     data_feed_id: Vec<u8>,
     value: f32,
@@ -58,7 +58,7 @@ impl DataPointPlainObj {
 /// };
 /// ...
 /// ``````
-#[derive(CandidType, Deserialize)]
+#[derive(CandidType, Deserialize, Serialize)]
 pub struct DataPackage {
     timestamp_ms : SystemTime,
     signature: Vec<u8>,
