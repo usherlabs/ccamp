@@ -1,23 +1,30 @@
-type parsed_header = record {
-    name : text;
-    value : vec nat8;
+type DataPackage = record {
+  signature : blob;
+  timestamp_ms : SystemTime;
+  data_points : vec DataPointPlainObj;
 };
-
-type parsed_request = record {
-    method : opt text;
-    path : opt text;
-    version : opt nat8;
-    headers : vec parsed_header;
+type DataPointPlainObj = record {
+  data_feed_id : blob;
+  value : float32;
 };
-
-type parsed_response = record {
-    version : opt nat8;
-    code : opt nat16;
-    reason : opt text;
-    headers : vec parsed_header;
+type ParsedHeader = record { value : blob; name : text };
+type ParsedRequest = record {
+  method : opt text;
+  path : opt text;
+  headers : vec ParsedHeader;
+  version : opt nat8;
 };
-
+type ParsedResponse = record {
+  code : opt nat16;
+  headers : vec ParsedHeader;
+  version : opt nat8;
+  reason : opt text;
+};
+type SystemTime = record {
+  nanos_since_epoch : nat32;
+  secs_since_epoch : nat64;
+};
 service : {
-    "verify_data_proof" : (text) -> (text);
-    "verify_tls_proof" : (text) -> (parsed_request, parsed_response, text);
+  verify_data_proof : (text) -> (vec DataPackage);
+  verify_tls_proof : (text) -> (ParsedRequest, ParsedResponse, text);
 }

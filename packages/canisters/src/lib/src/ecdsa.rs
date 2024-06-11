@@ -1,11 +1,8 @@
 #![allow(dead_code)]
 
 use crate::{ecdsa, remittance::Config};
-use ic_cdk::export::{
-    candid::CandidType,
-    serde::{Deserialize, Serialize},
-    Principal,
-};
+use candid::{Principal, CandidType};
+use serde::{Serialize, Deserialize};
 
 #[derive(CandidType, Serialize, Debug)]
 pub struct PublicKeyReply {

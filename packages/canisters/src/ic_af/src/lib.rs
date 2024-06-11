@@ -1,57 +1,15 @@
 mod tls_parse;
+mod redstone_data;
 
 use tls_parse::{ParsedRequest, ParsedResponse};
-use std::time::SystemTime;
+use redstone_data::{DataPackage, RedstoneData};
 use std::str::FromStr;
 
-use candid::{parser::value::IDLValue, CandidType};
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_cdk_macros::*;
-use serde::Deserialize;
 use tlsn_substrings_verifier::proof::{SessionProof, TlsProof};
 
 use lib::ecdsa::{EcdsaKeyIds, SignWithECDSA, SignWithECDSAReply, SignatureReply};
-
-/// Ref : https://docs.rs/candid/latest/candid/types/value/enum.IDLValue.html#variant.Record
-type Metadata = IDLValue;
-
-/// Ref : https://github.com/redstone-finance/redstone-oracles-monorepo/blob/main/packages/protocol/src/data-point/DataPoint.ts
-/// ```typescript
-///     export interface IStandardDataPoint {
-///     dataFeedId: ConvertibleToBytes32;
-///     value: string; // base64-encoded bytes
-///     metadata?: Metadata;
-/// }
-/// ```
-#[derive(CandidType, Deserialize)]
-struct DataPointPlainObj {
-    dataFeedId: String,
-    value: f32,
-    metadata: Option<Metadata>,
-
-}
-
-/// Ref : https://github.com/redstone-finance/redstone-oracles-monorepo/blob/main/packages/cache-service/src/data-packages/data-packages.model.ts
-/// ```typescript
-/// ...
-/// export type DataPackageDocumentMostRecentAggregated = {
-///  _id: { signerAddress: string; dataFeedId: string };
-///  timestampMilliseconds: Date;
-///  signature: string;
-///  dataPoints: DataPointPlainObj[];
-///  dataServiceId: string;
-///  dataFeedId: string;
-///  dataPackageId: string;
-///  isSignatureValid: boolean;
-/// };
-/// ...
-/// ``````
-#[derive(CandidType, Deserialize)]
-struct DataPackage {
-    timestampMilliseconds : SystemTime,
-    signature: String,
-    dataPoints: Vec<DataPointPlainObj>,
-}
 
 /// Get the management canister
 fn mgmt_canister_id() -> CanisterId {
@@ -69,10 +27,19 @@ fn sha256(input: &[u8]) -> [u8; 32] {
 /// verifying the signatures for data-package
 /// Sample file : ../../../../fixtures/data-package.json
 #[update]
-fn verify_data_proof(data_package : String) -> (String, String) {
-    let data_package : DataPackage = serde_json::from_str(data_package.as_str()).unwrap();
-    // todo!();
-    (String::new(), String::new())
+fn verify_data_proof(redstone_data : String) -> Vec<DataPackage> {
+    let redstone_data : RedstoneData = serde_json::from_str(redstone_data.as_str()).unwrap();
+    let mut signer_bytes = [0u8; 20];
+    let mut result = Vec::new();
+
+    hex::decode_to_slice(redstone_data.address[2..].to_owned(), &mut signer_bytes).unwrap();
+    for data_package in redstone_data.dataPackages {
+        let data_package_bytes = hex::decode(data_package.as_str()[2..].to_owned()).unwrap();
+        let data_package = DataPackage::extract_and_verify(data_package_bytes.as_slice(), &signer_bytes);
+        result.push(data_package);
+    }
+
+    result
 }
 
 
@@ -137,3 +104,5 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
 
     (parsed_http_req, parsed_http_res, reply.signature_hex)
 }
+
+ic_cdk::export_candid!();
