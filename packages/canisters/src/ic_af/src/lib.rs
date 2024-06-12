@@ -2,7 +2,7 @@ mod tls_parse;
 mod redstone_data;
 
 use tls_parse::{ParsedRequest, ParsedResponse};
-use redstone_data::{DataPackage, RedstoneData};
+use redstone_data::{DataPackage, StreamData, StreamRawData};
 use std::str::FromStr;
 
 use ic_cdk::api::management_canister::main::CanisterId;
@@ -27,19 +27,28 @@ fn sha256(input: &[u8]) -> [u8; 32] {
 /// verifying the signatures for data-package
 /// Sample file : ../../../../fixtures/data-package.json
 #[update]
-async fn verify_data_proof(redstone_data : String) -> (Vec<DataPackage>, String) {
-    let redstone_data : RedstoneData = serde_json::from_str(redstone_data.as_str()).unwrap();
-    let mut signer_bytes = [0u8; 20];
-    let mut result = Vec::new();
+async fn verify_data_proof(stream_raw_data : String) -> (String, String) {
+    let stream_raw_data : StreamRawData = serde_json::from_str(stream_raw_data.as_str()).unwrap();
+    let stream_data = StreamData::from(stream_raw_data.clone());
 
-    hex::decode_to_slice(redstone_data.address[2..].to_owned(), &mut signer_bytes).unwrap();
-    for data_package in redstone_data.dataPackages {
-        let data_package_bytes = hex::decode(data_package.as_str()[2..].to_owned()).unwrap();
-        let data_package = DataPackage::extract_and_verify(data_package_bytes.as_slice(), &signer_bytes);
-        result.push(data_package);
+    let json_result : String;
+    // This will be handling more different types of stream data
+    match stream_data {
+        StreamData::RedstoneData(redstone_data) => {
+            let mut result = Vec::new();
+            for data_package in redstone_data.data_packages {
+                let data_package_bytes = hex::decode(data_package.as_str()[2..].to_owned()).unwrap();
+                let data_package = DataPackage::extract_and_verify(data_package_bytes.as_slice(), &redstone_data.address);
+                result.push(data_package);
+            }
+            json_result = serde_json::to_string(&result).unwrap();
+        },
+        StreamData::UnknownType => {
+            panic!("UnknownType");
+        }
     }
 
-    let bin_data = bincode::serialize(&result).unwrap();
+    let bin_data = bincode::serialize(&stream_raw_data).unwrap();
 
     let request = SignWithECDSA {
         message_hash: sha256(bin_data.as_slice()).to_vec(),
@@ -60,7 +69,7 @@ async fn verify_data_proof(redstone_data : String) -> (Vec<DataPackage>, String)
         signature_hex: hex::encode(&response.signature),
     };
 
-    (result, reply.signature_hex)
+    (json_result, reply.signature_hex)
 }
 
 

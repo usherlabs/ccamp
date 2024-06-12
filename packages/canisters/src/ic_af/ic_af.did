@@ -1,12 +1,3 @@
-type DataPackage = record {
-  signature : blob;
-  timestamp_ms : SystemTime;
-  data_points : vec DataPointPlainObj;
-};
-type DataPointPlainObj = record {
-  data_feed_id : blob;
-  value : float32;
-};
 type ParsedHeader = record { value : blob; name : text };
 type ParsedRequest = record {
   method : opt text;
@@ -20,11 +11,7 @@ type ParsedResponse = record {
   version : opt nat8;
   reason : opt text;
 };
-type SystemTime = record {
-  nanos_since_epoch : nat32;
-  secs_since_epoch : nat64;
-};
 service : {
-  verify_data_proof : (text) -> (vec DataPackage, text);
+  verify_data_proof : (text) -> (text, text);
   verify_tls_proof : (text) -> (ParsedRequest, ParsedResponse, text);
 }

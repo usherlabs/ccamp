@@ -2,6 +2,7 @@
 //! Ref : https://github.com/redstone-finance/redstone-rust-sdk
 use candid::{types::value::IDLValue, CandidType};
 use serde_derive::{Serialize, Deserialize};
+use serde_json::Value;
 use std::{time::{Duration, SystemTime, UNIX_EPOCH}, u8};
 use sha3::{Keccak256, Digest};
 
@@ -16,6 +17,14 @@ const DATA_FEED_ID_BS: usize = 32;
 const TIMESTAMP_BS: usize = 6;
 const MAX_TIMESTAMP_DELAY_MS: u128 = 3 * 60 * 1000; // 3 minutes in milliseconds
 const REDSTONE_MARKER: [u8; 9] = [0, 0, 2, 237, 87, 1, 30, 0, 0]; // 0x000002ed57011e0000
+
+const REDSTONE_STREAM_IDS : [&str; 5] = [
+	"0xBa24aFB019D768263edD606a9Fd10D3d0806E039/redstone-oracle-node/0x8BB8F32Df04c8b654987DAaeD53D6B6091e3B774/data-packages",
+	"0x65684fcb6f470BF2eEa3949CDd771b45F601481b/redstone-oracle-node/0xdEB22f54738d54976C4c0fe5ce6d408E40d88499/data-packages",
+	"0x6425466cBB7Cd64F3F2AD3b65aB0D0b5471A5483/redstone-oracle-node/0x51Ce04Be4b3E32572C4Ec9135221d0691Ba7d202/data-packages",
+	"0x8a0108B1c5B646f71BB679Bc2E18f83df2D65cfd/redstone-oracle-node/0xDD682daEC5A90dD295d14DA4b0bec9281017b5bE/data-packages",
+	"0x871221720E3965773bEBAf157E204Ab22c9BE309/redstone-oracle-node/0x9c5AE89C4Af6aA32cE58588DBaF90d18a855B6de/data-packages",
+];
 
 /// Ref : https://docs.rs/candid/latest/candid/types/value/enum.IDLValue.html#variant.Record
 type Metadata = IDLValue;
@@ -190,10 +199,47 @@ impl DataPackage {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct StreamRawData {
+    pub stream_id : String,
+    pub data_type : String,
+    pub stream_data : Value,
+}
+
+pub enum StreamData {
+    RedstoneData(RedstoneData),
+    UnknownType,
+}
+
+impl From<StreamRawData> for StreamData {
+    fn from(raw_data : StreamRawData) -> Self {
+        // This will be handling more different types of stream data
+        match raw_data.data_type.as_str() {
+            "redstone_data_packages" => {
+                // Check if the streamr id is valid
+                if !REDSTONE_STREAM_IDS.contains(&raw_data.stream_id.as_str()) {
+                    panic!("The streamr id is not a valid redstone publisher id");
+                }
+
+                let address : &str = raw_data.stream_id.split("/").collect::<Vec<&str>>().get(2).unwrap();
+                let mut signer_bytes = [0u8; 20];
+
+                hex::decode_to_slice(address[2..].to_owned(), &mut signer_bytes).unwrap();
+                StreamData::RedstoneData(
+                RedstoneData {
+                    address : signer_bytes,
+                    data_packages : serde_json::from_value(raw_data.stream_data).unwrap(),
+                })
+            },
+            _ => StreamData::UnknownType,
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct RedstoneData {
-    pub address : String,
-    pub dataPackages : Vec<String>,
+    pub address : [u8; 20],
+    pub data_packages : Vec<String>,
 }
 
 #[cfg(test)]
