@@ -1,55 +1,15 @@
 mod tls_parse;
+mod redstone_data;
 
 use tls_parse::{ParsedRequest, ParsedResponse};
-use std::time::SystemTime;
+use redstone_data::{DataPackage, StreamData, StreamRawData};
 use std::str::FromStr;
 
-use candid::{parser::value::IDLValue, CandidType};
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_cdk_macros::*;
-use serde::Deserialize;
 use tlsn_substrings_verifier::proof::{SessionProof, TlsProof};
 
-/// Ref : https://docs.rs/candid/latest/candid/types/value/enum.IDLValue.html#variant.Record
-type Metadata = IDLValue;
-
-/// Ref : https://github.com/redstone-finance/redstone-oracles-monorepo/blob/main/packages/protocol/src/data-point/DataPoint.ts
-/// ```typescript
-///     export interface IStandardDataPoint {
-///     dataFeedId: ConvertibleToBytes32;
-///     value: string; // base64-encoded bytes
-///     metadata?: Metadata;
-/// }
-/// ```
-#[derive(CandidType, Deserialize)]
-struct DataPointPlainObj {
-    dataFeedId: String,
-    value: f32,
-    metadata: Option<Metadata>,
-
-}
-
-/// Ref : https://github.com/redstone-finance/redstone-oracles-monorepo/blob/main/packages/cache-service/src/data-packages/data-packages.model.ts
-/// ```typescript
-/// ...
-/// export type DataPackageDocumentMostRecentAggregated = {
-///  _id: { signerAddress: string; dataFeedId: string };
-///  timestampMilliseconds: Date;
-///  signature: string;
-///  dataPoints: DataPointPlainObj[];
-///  dataServiceId: string;
-///  dataFeedId: string;
-///  dataPackageId: string;
-///  isSignatureValid: boolean;
-/// };
-/// ...
-/// ``````
-#[derive(CandidType, Deserialize)]
-struct DataPackage {
-    timestampMilliseconds : SystemTime,
-    signature: String,
-    dataPoints: Vec<DataPointPlainObj>,
-}
+use lib::ecdsa::{EcdsaKeyIds, SignWithECDSA, SignWithECDSAReply, SignatureReply};
 
 /// Get the management canister
 fn mgmt_canister_id() -> CanisterId {
@@ -67,17 +27,56 @@ fn sha256(input: &[u8]) -> [u8; 32] {
 /// verifying the signatures for data-package
 /// Sample file : ../../../../fixtures/data-package.json
 #[update]
-fn verify_data_proof(data_package : String) -> (String, String) {
-    let data_package : DataPackage = serde_json::from_str(data_package.as_str()).unwrap();
-    // todo!();
-    (String::new(), String::new())
+async fn verify_data_proof(stream_raw_data : String) -> (String, String) {
+    let stream_raw_data : StreamRawData = serde_json::from_str(stream_raw_data.as_str()).unwrap();
+    let stream_data = StreamData::from(stream_raw_data.clone());
+
+    let json_result : String;
+    // This will be handling more different types of stream data
+    match stream_data {
+        StreamData::RedstoneData(redstone_data) => {
+            let mut result = Vec::new();
+            for data_package in redstone_data.data_packages {
+                let data_package_bytes = hex::decode(data_package.as_str()[2..].to_owned()).unwrap();
+                let data_package = DataPackage::extract_and_verify(data_package_bytes.as_slice(), &redstone_data.address);
+                result.push(data_package);
+            }
+            json_result = serde_json::to_string(&result).unwrap();
+        },
+        StreamData::UnknownType => {
+            panic!("UnknownType");
+        }
+    }
+
+    let bin_data = bincode::serialize(&stream_raw_data).unwrap();
+
+    let request = SignWithECDSA {
+        message_hash: sha256(bin_data.as_slice()).to_vec(),
+        derivation_path: vec![],
+        key_id: EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+    };
+
+    let (response,): (SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
+        mgmt_canister_id(),
+        "sign_with_ecdsa",
+        (request,),
+        25_000_000_000,
+    )
+    .await
+    .map_err(|e| format!("sign_with_ecdsa failed {}", e.1)).unwrap();
+
+    let reply = SignatureReply {
+        signature_hex: hex::encode(&response.signature),
+    };
+
+    (json_result, reply.signature_hex)
 }
 
 
 /// verifying the tls proofs
 /// Sample file : ../../../../fixtures/tiwtter_proof.json
 #[update]
-async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse) {
+async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse, String) {
     let tls_proof: TlsProof = serde_json::from_str(tls_proof.as_str()).unwrap();
     
     let TlsProof {
@@ -111,5 +110,29 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse)
     http_res.parse(recv.data()).unwrap();
     let parsed_http_res = ParsedResponse::from(http_res);
 
-    (parsed_http_req, parsed_http_res)
+    let mut bin_data = bincode::serialize(&parsed_http_req).unwrap();
+    bin_data.extend(&bincode::serialize(&parsed_http_res).unwrap());
+
+    let request = SignWithECDSA {
+        message_hash: sha256(bin_data.as_slice()).to_vec(),
+        derivation_path: vec![],
+        key_id: EcdsaKeyIds::TestKeyLocalDevelopment.to_key_id(),
+    };
+
+    let (response,): (SignWithECDSAReply,) = ic_cdk::api::call::call_with_payment(
+        mgmt_canister_id(),
+        "sign_with_ecdsa",
+        (request,),
+        25_000_000_000,
+    )
+    .await
+    .map_err(|e| format!("sign_with_ecdsa failed {}", e.1)).unwrap();
+
+    let reply = SignatureReply {
+        signature_hex: hex::encode(&response.signature),
+    };
+
+    (parsed_http_req, parsed_http_res, reply.signature_hex)
 }
+
+ic_cdk::export_candid!();
