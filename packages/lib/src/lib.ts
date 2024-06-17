@@ -60,6 +60,7 @@ export class CCAMPClient {
 			dataCollection: baseFile['data_collection'][baseFileKey],
 			protocolDataCollection: baseFile['protocol_data_collection'][baseFileKey],
 			remittance: baseFile['remittance'][baseFileKey],
+			icaf: baseFile['icaf'][baseFileKey],
 		};
 		this.env = env;
 	}

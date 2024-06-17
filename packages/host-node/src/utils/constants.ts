@@ -1,0 +1,6 @@
+export const PG_NOTIFY_EVENT_NAME = "new_index";
+
+export const CACHE_SUFFIXES = {
+  SOURCE_EVENT: "SOURCE_EVENT",
+  VALIDATOR_EVENT: "VALIDATOR_EVENT",
+};

@@ -1,0 +1,34 @@
+{
+	"ts-node": {
+		// these options are overrides used only by ts-node
+		// same as the --compilerOptions flag and the TS_NODE_COMPILER_OPTIONS environment variable
+		"compilerOptions": {
+			"module": "commonjs"
+		},
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"compilerOptions": {
+		"skipLibCheck": true,
+		"outDir": "dist",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"plugins": [{ "transform": "ts-transformer-imports" }],
+		"alwaysStrict": false,
+		"allowUnreachableCode": false,
+		"noImplicitAny": true,
+		"esModuleInterop": true,
+		"strictNullChecks": false,
+		"noUnusedLocals": false,
+		"noUnusedParameters": true,
+		"module": "commonjs",
+		"target": "es2015",
+		"moduleResolution": "node",
+		"resolveJsonModule": true
+	},
+	"include": ["./src/"],
+	"exclude": ["./node_modules"]
+}

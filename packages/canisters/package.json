@@ -19,6 +19,7 @@
 		"./src/declarations/data_collection",
 		"./src/declarations/protocol_data_collection",
 		"./src/declarations/remittance",
+		"./src/declarations/ic_af",
 		"./.dfx"
 	],
 	"type": "module",
