@@ -10,8 +10,7 @@
 	"scripts": {
 		"clean": "del packages/*/node_modules packages/*/dist node_modules",
 		"build": "npx turbo run build --force",
-		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md,sol}\"",
-		"postinstall": "cp -rf ./node_modules/deno-bin ./packages/relay/node_modules"
+		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md,sol}\""
 	},
 	"devDependencies": {
 		"@turbo/gen": "^1.9.7",
