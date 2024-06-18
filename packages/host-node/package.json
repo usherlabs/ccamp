@@ -4,17 +4,20 @@
 	"description": "off-chain node",
 	"main": "index.js",
 	"license": "MIT",
+	"type": "module",
 	"engines": {
 		"node": ">= 18.17.0"
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"clean": "",
-		"dev": "ts-node -r tsconfig-paths/register src/index.ts",
-		"build": "ttsc"
+		"build": "npx babel --extensions .ts src --out-dir dist",
+		"start": "yarn run build && node --es-module-specifier-resolution=node dist/index.js"
 	},
 	"dependencies": {
-		"@ccamp/lib": "workspace:*",
+		"@babel/cli": "^7.24.7",
+		"@babel/node": "^7.24.7",
+		"@babel/preset-env": "^7.24.7",
 		"ethers": "^6.8.1",
 		"fs": "^0.0.1-security",
 		"pg": "^8.12.0",
@@ -22,7 +25,10 @@
 		"simple-node-logger": "^21.8.12"
 	},
 	"devDependencies": {
+		"@babel/preset-env": "^7.24.7",
+		"@babel/preset-typescript": "^7.24.7",
 		"@types/pg": "^8.11.6",
+		"babel-plugin-add-import-extension": "^1.6.0",
 		"ts-transformer-imports": "^0.4.3",
 		"tsconfig-paths": "^4.2.0",
 		"ttypescript": "^1.5.15",
