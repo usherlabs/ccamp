@@ -1,6 +1,6 @@
 //! Parsing and verifying Redstone datapackages
 //! Ref : https://github.com/redstone-finance/redstone-rust-sdk
-use candid::{types::value::IDLValue, CandidType};
+use candid::{CandidType};
 use serde_derive::{Serialize, Deserialize};
 use serde_json::Value;
 use std::{time::{Duration, SystemTime, UNIX_EPOCH}, u8};
@@ -27,7 +27,7 @@ const REDSTONE_STREAM_IDS : [&str; 5] = [
 ];
 
 /// Ref : https://docs.rs/candid/latest/candid/types/value/enum.IDLValue.html#variant.Record
-type Metadata = IDLValue;
+// type Metadata = IDLValue;
 
 /// Ref : https://github.com/redstone-finance/redstone-oracles-monorepo/blob/main/packages/protocol/src/data-point/DataPoint.ts
 /// ```typescript
@@ -175,14 +175,16 @@ impl DataPackage {
         start_index = end_index - data_package_byte_size_without_sig;
         let signable_message = &redstone_payload[start_index..end_index];
 
-        let recovery_id = secp256k1::ecdsa::RecoveryId::from_i32(signature[64] as i32 - 27).unwrap();
-        let sig = secp256k1::ecdsa::RecoverableSignature::from_compact(&signature[..64], recovery_id).unwrap();
+        let recovery_id = libsecp256k1::RecoveryId::parse(signature[64] as u8 - 27).expect("Failed to parse recovery ID");
+        let sig = libsecp256k1::Signature::parse_standard_slice(&signature[..64]).expect("Failed to parse signature");
         let mut hasher = Keccak256::new();
         hasher.update(signable_message);
-        let msg = secp256k1::Message::from_digest_slice(&hasher.finalize()).unwrap();
-        let pub_key = sig.recover(&msg).unwrap();
+        let hash_result = hasher.finalize();
+        let msg = libsecp256k1::Message::parse_slice(&hash_result).expect("Failed to parse message slice");
 
-        let pub_bytes = pub_key.serialize_uncompressed();
+        let pub_key = libsecp256k1::recover(&msg, &sig, &recovery_id).expect("Failed to recover public key");
+
+        let pub_bytes = pub_key.serialize();
         let mut hasher = Keccak256::new();
         hasher.update(&pub_bytes[1..]);
         let recovered_addr = hasher.finalize()[12..].to_owned();
@@ -195,7 +197,7 @@ impl DataPackage {
             timestamp_ms,
             signature : signature.to_vec(),
             data_points
-        }   
+        }
     }
 }
 

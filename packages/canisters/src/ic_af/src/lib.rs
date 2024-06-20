@@ -135,4 +135,4 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
     (parsed_http_req, parsed_http_res, reply.signature_hex)
 }
 
-ic_cdk::export_candid!();
+// ic_cdk::export_candid!();

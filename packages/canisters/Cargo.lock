@@ -749,12 +749,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dotenv"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
-
-[[package]]
 name = "easy-hasher"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1226,20 +1220,7 @@ checksum = "9beb0bf1dcd0639c313630e34aa547a2b19450ddf1969c176e13225ef3b29048"
 dependencies = [
  "candid 0.8.4",
  "ic-cdk-macros 0.6.10",
- "ic0 0.18.11",
- "serde",
- "serde_bytes",
-]
-
-[[package]]
-name = "ic-cdk"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff384f182459bec490a7f50a58bbdf8f7a6934de4dcc259e30c70641bcbcb917"
-dependencies = [
- "candid 0.10.8",
- "ic-cdk-macros 0.14.0",
- "ic0 0.23.0",
+ "ic0",
  "serde",
  "serde_bytes",
 ]
@@ -1255,7 +1236,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "serde_tokenstream 0.1.7",
+ "serde_tokenstream",
  "syn 1.0.109",
 ]
 
@@ -1269,22 +1250,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "serde_tokenstream 0.1.7",
+ "serde_tokenstream",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "ic-cdk-macros"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01dc6bc425ec048d6ac4137c7c0f2cfbd6f8b0be8efc568feae2b265f566117c"
-dependencies = [
- "candid 0.10.8",
- "proc-macro2",
- "quote",
- "serde",
- "serde_tokenstream 0.2.1",
- "syn 2.0.66",
 ]
 
 [[package]]
@@ -1295,21 +1262,7 @@ checksum = "c739e7c592cb66df4f15c6b6c4859b1195782f63923e2fb1b29553d9c0819bd4"
 dependencies = [
  "futures",
  "ic-cdk 0.7.4",
- "ic0 0.18.11",
- "serde",
- "serde_bytes",
- "slotmap",
-]
-
-[[package]]
-name = "ic-cdk-timers"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc4a42e669e47cf58fc18e071898e67922c81aa480edbf930ed1468dd53f44ee"
-dependencies = [
- "futures",
- "ic-cdk 0.14.0",
- "ic0 0.23.0",
+ "ic0",
  "serde",
  "serde_bytes",
  "slotmap",
@@ -1337,26 +1290,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "576c539151d4769fb4d1a0c25c4108dd18facd04c5695b02cf2d226ab4e43aa5"
 
 [[package]]
-name = "ic0"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8de254dd67bbd58073e23dc1c8553ba12fa1dc610a19de94ad2bbcd0460c067f"
-
-[[package]]
 name = "ic_af"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "candid 0.10.8",
- "dotenv",
+ "candid 0.7.18",
  "hex",
  "httparse",
- "ic-cdk 0.14.0",
- "ic-cdk-macros 0.14.0",
- "ic-cdk-timers 0.8.0",
+ "ic-cdk 0.5.7",
+ "ic-cdk-macros 0.5.7",
+ "ic-cdk-timers",
  "lib",
+ "libsecp256k1 0.7.1",
  "p256",
- "secp256k1",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1560,11 +1506,12 @@ checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 name = "lib"
 version = "0.1.0"
 dependencies = [
- "candid 0.10.8",
+ "candid 0.7.18",
  "easy-hasher",
+ "getrandom 0.2.15",
  "hex",
- "ic-cdk 0.14.0",
- "ic-cdk-macros 0.14.0",
+ "ic-cdk 0.5.7",
+ "ic-cdk-macros 0.5.7",
  "libsecp256k1 0.7.1",
  "serde",
  "serde_derive",
@@ -2109,10 +2056,9 @@ name = "protocol_data_collection"
 version = "0.1.0"
 dependencies = [
  "candid 0.7.18",
- "dotenv",
  "ic-cdk 0.5.7",
  "ic-cdk-macros 0.5.7",
- "ic-cdk-timers 0.1.2",
+ "ic-cdk-timers",
  "lib",
  "serde",
  "serde_derive",
@@ -2308,7 +2254,7 @@ dependencies = [
  "hex",
  "ic-cdk 0.5.7",
  "ic-cdk-macros 0.5.7",
- "ic-cdk-timers 0.1.2",
+ "ic-cdk-timers",
  "k256",
  "lib",
  "libsecp256k1 0.6.0",
@@ -2450,24 +2396,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "secp256k1"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e0cc0f1cf93f4969faf3ea1c7d8a9faed25918d96affa959720823dfe86d4f3"
-dependencies = [
- "secp256k1-sys",
-]
-
-[[package]]
-name = "secp256k1-sys"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1433bd67156263443f14d603720b082dd3121779323fce20cba2aa07b874bc1b"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2531,18 +2459,6 @@ dependencies = [
  "proc-macro2",
  "serde",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "serde_tokenstream"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8790a7c3fe883e443eaa2af6f705952bc5d6e8671a220b9335c8cae92c037e74"
-dependencies = [
- "proc-macro2",
- "quote",
- "serde",
- "syn 2.0.66",
 ]
 
 [[package]]
@@ -2868,7 +2784,7 @@ dependencies = [
  "candid 0.7.18",
  "ic-cdk 0.5.7",
  "ic-cdk-macros 0.5.7",
- "ic-cdk-timers 0.1.2",
+ "ic-cdk-timers",
  "icrc-ledger-types",
  "lib",
  "serde",
