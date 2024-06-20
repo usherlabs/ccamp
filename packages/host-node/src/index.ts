@@ -1,3 +1,3 @@
-import { start } from "./node";
+import { start } from './node';
 
 start();
