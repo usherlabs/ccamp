@@ -6,6 +6,7 @@ members = [
     "src/data_collection",
     "src/protocol_data_collection",
     "src/examples/token",
-    "src/examples/bridge_data_collection", "src/ic_af",
+    "src/examples/bridge_data_collection",
+    "src/ic_af",
     "src/tlsn-substrings-verifier"
 ]
