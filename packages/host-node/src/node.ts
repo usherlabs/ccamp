@@ -39,5 +39,9 @@ export async function start() {
 
 	const result = await actor.verify_tls_proof(tls_data.toString());
 
+	fs.writeFileSync(
+		'./fixtures/twitter_data.json',
+		JSON.stringify(result, null, 2)
+	);
 	console.log(result);
 }

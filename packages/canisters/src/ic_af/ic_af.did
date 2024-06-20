@@ -1,16 +1,23 @@
-type ParsedHeader = record { value : blob; name : text };
+type ParsedHeader = record {
+    name: text;
+    value: text;
+};
+
 type ParsedRequest = record {
-  method : opt text;
-  path : opt text;
-  headers : vec ParsedHeader;
-  version : opt nat8;
+    method: opt text;
+    path: opt text;
+    version: opt nat8;
+    headers: vec ParsedHeader;
 };
+
 type ParsedResponse = record {
-  code : opt nat16;
-  headers : vec ParsedHeader;
-  version : opt nat8;
-  reason : opt text;
+    version: opt nat8;
+    code: opt nat16;
+    reason: opt text;
+    headers: vec ParsedHeader;
+    body: text;
 };
+
 service : {
   verify_data_proof : (text) -> (text, text);
   verify_tls_proof : (text) -> (ParsedRequest, ParsedResponse, text);
