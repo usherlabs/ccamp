@@ -5,7 +5,8 @@ use candid::Principal;
 use tls_parse::{ParsedRequest, ParsedResponse};
 use redstone_data::{DataPackage, StreamData, StreamRawData};
 use ic_cdk_macros::*;
-use tlsn_substrings_verifier::proof::{SessionProof, TlsProof};
+use tlsn_core::proof::{SessionProof, TlsProof};
+use elliptic_curve::pkcs8::DecodePublicKey;
 
 use lib::{ ethereum, utils };
 use lib::ecdsa::{EcdsaKeyIds, SignWithECDSA, SignWithECDSAReply, SignatureReply, ECDSAPublicKey, ECDSAPublicKeyReply};
@@ -77,6 +78,22 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
         session,
         substrings,
     } = tls_proof;
+
+    // Verify the session proof against the Notary's public key
+    //
+    // This verifies the identity of the server using a default certificate verifier which trusts
+    // the root certificates from the `webpki-roots` crate.
+    let pub_key_raw = r#"
+        -----BEGIN PUBLIC KEY-----
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr
+        cRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==
+        -----END PUBLIC KEY-----
+    "#;
+    let pub_key = p256::PublicKey::from_public_key_pem(pub_key_raw)
+        .or(Err("INVALID PUBLIC KEY".to_owned()))?;
+    session
+        .verify_with_default_cert_verifier(pub_key)
+        .or(Err("INVALID PUBLIC KEY".to_owned()))?;
 
     let SessionProof {
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.

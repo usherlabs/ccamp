@@ -40,4 +40,4 @@ data
 dist
 
 # misc
-packages/host-node/fixtures/twitter_data.json
+packages/host-node/fixtures/*.data.json
