@@ -91,16 +91,19 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
     // This verifies the identity of the server using a default certificate verifier which trusts
     // the root certificates from the `webpki-roots` crate.
     let pub_key_raw = r#"
-        -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr
-        cRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==
-        -----END PUBLIC KEY-----
-    "#;
-    let pub_key = p256::PublicKey::from_public_key_pem(pub_key_raw)
-        .unwrap_or_else(|_| panic!("INVALID PUBLIC KEY"));
-    // session
-    //     .verify_with_default_cert_verifier(pub_key)
-    //     .unwrap_or_else(|_| panic!("FAILED TO VERIFY SESSION"));
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr
+cRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==
+-----END PUBLIC KEY-----
+"#;
+    let pub_key = match p256::PublicKey::from_public_key_pem(pub_key_raw) {
+        Ok(key) => key,
+        Err(e) => panic!("INVALID PUBLIC KEY: {:?}", e),
+    };
+    match session.verify_with_default_cert_verifier(pub_key) {
+        Ok(_) => (),
+        Err(e) => panic!("FAILED TO VERIFY SESSION: {:?}", e),
+    };
 
     let SessionProof {
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.
@@ -111,32 +114,38 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
         ..
     } = session;
 
-    let (sent, recv) = substrings.verify(&header).unwrap();
+    let (mut sent, mut recv) = substrings.verify(&header).unwrap();
 
-    // // Replace the bytes which the Prover chose not to disclose with 'X'
-    // sent.set_redacted(b'X');
-    // recv.set_redacted(b'X');
+    // Replace the bytes which the Prover chose not to disclose with 'X'
+    sent.set_redacted(b'X');
+    recv.set_redacted(b'X');
 
     // Parsing http request and response
     let mut headers: [httparse::Header<'_>; 16] = [httparse::EMPTY_HEADER; 16];
     let mut http_req = httparse::Request::new(&mut headers);
-    let parsed_http_req: ParsedRequest = match http_req.parse(sent.data()).unwrap() {
-        httparse::Status::Complete(_) => http_req.into(),
-        httparse::Status::Partial => {
-            panic!("Failed to parse the TLS request");
+    let parsed_http_req: ParsedRequest = match http_req.parse(sent.data()) {
+        Ok(httparse::Status::Complete(_)) => http_req.into(),
+        Ok(httparse::Status::Partial) => {
+            panic!("Failed to parse the complete TLS request");
+        }
+        Err(e) => {
+            panic!("Failed to parse the TLS request: {:?}", e);
         }
     };
 
     let mut headers = [httparse::EMPTY_HEADER; 32];
     let mut http_res = httparse::Response::new(&mut headers);
     let response_bytes = recv.data();
-    let parsed_http_res: ParsedResponse = match http_res.parse(response_bytes).unwrap() {
-        httparse::Status::Complete(body_start) => {
+    let parsed_http_res: ParsedResponse = match http_res.parse(response_bytes) {
+        Ok(httparse::Status::Complete(body_start)) => {
             let body = &response_bytes[body_start..];
             (http_res, body).into()
         }
-        httparse::Status::Partial => {
+        Ok(httparse::Status::Partial) => {
             panic!("Failed to parse the TLS response");
+        }
+        Err(e) => {
+            panic!("Failed to parse the TLS response: {:?}", e);
         }
     };
 
