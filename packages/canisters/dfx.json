@@ -52,7 +52,7 @@
 				"node_compatibility": true
 			},
 			"type": "custom",
-			"wasm": "target/wasm32-wasi/release/backend-ic.wasm",
+			"wasm": "target/wasm32-wasi/release/ic_af-ic.wasm",
 			"build": ["bash -c ./src/ic_af/build.sh"]
 		}
 	},
