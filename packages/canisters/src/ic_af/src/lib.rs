@@ -11,6 +11,13 @@ use elliptic_curve::pkcs8::DecodePublicKey;
 use lib::{ ethereum, utils };
 use lib::ecdsa::{EcdsaKeyIds, SignWithECDSA, SignWithECDSAReply, SignatureReply, ECDSAPublicKey, ECDSAPublicKeyReply};
 
+#[init]
+fn init() {
+    unsafe {
+        ic_wasi_polyfill::init(&[0u8; 32], &[]);
+    }
+}
+
 /// Sha256 hash
 fn sha256(input: &[u8]) -> [u8; 32] {
     use sha2::Digest;

@@ -40,13 +40,20 @@
 				"node_compatibility": true
 			}
 		},
-		"ic_af" : {
+		"ic_af": {
+			"metadata": [
+				{
+					"name": "candid:service"
+				}
+			],
 			"candid": "src/ic_af/ic_af.did",
 			"package": "ic_af",
-			"type": "rust",
 			"declarations": {
 				"node_compatibility": true
-			}
+			},
+			"type": "custom",
+			"wasm": "target/wasm32-wasi/release/backend-ic.wasm",
+			"build": ["bash -c ./src/ic_af/build.sh"]
 		}
 	},
 	"output_env_file": ".env",
