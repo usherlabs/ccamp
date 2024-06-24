@@ -90,10 +90,10 @@ async fn verify_tls_proof(tls_proof : String) -> (ParsedRequest, ParsedResponse,
         -----END PUBLIC KEY-----
     "#;
     let pub_key = p256::PublicKey::from_public_key_pem(pub_key_raw)
-        .or(Err("INVALID PUBLIC KEY".to_owned()))?;
+        .unwrap_or_else(|_| panic!("INVALID PUBLIC KEY"));
     session
         .verify_with_default_cert_verifier(pub_key)
-        .or(Err("INVALID PUBLIC KEY".to_owned()))?;
+        .unwrap_or_else(|_| panic!("FAILED TO VERIFY SESSION"));
 
     let SessionProof {
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.
