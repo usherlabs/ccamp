@@ -1,5 +1,8 @@
 # ICAF Canister Demo
 
+**Note for MacOS**: `https://github.com/briansmith/ring/issues/1824#issuecomment-2059955073`
+Please ensure `llvm` is installed and verify with `llvm-config --version`.
+
 ## 1. Execute local IC network
 
 ```bash
