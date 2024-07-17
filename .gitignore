@@ -41,3 +41,6 @@ dist
 
 # misc
 packages/host-node/fixtures/*.data.json
+
+# rust build
+target
