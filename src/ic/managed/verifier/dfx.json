@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "verifier_backend": {
+      "candid": "src/verifier_backend/verifier_backend.did",
+      "package": "verifier_backend",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
