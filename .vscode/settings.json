@@ -1,17 +1,9 @@
 {
     "rust-analyzer.linkedProjects": [
-        "./src/ic/libraries/crypto/Cargo.toml",
-        "./src/ic/libraries/indexer/Cargo.toml",
-        "./src/ic/libraries/owner/Cargo.toml",
-        "./src/ic/libraries/remittance/Cargo.toml",
-        "./src/ic/libraries/verify/Cargo.toml",
-        "./src/ic/libraries/verify/Cargo.toml",
-
+        "./src/ic/libraries/Cargo.toml",
         "./src/ic/managed/verifier/Cargo.toml",
-
         "./src/rs/request/Cargo.toml",
         "./src/rs/verify/Cargo.toml",
-
         "./src/zk/guest/Cargo.toml",
         "./src/zk/guest/Cargo.toml"
     ],

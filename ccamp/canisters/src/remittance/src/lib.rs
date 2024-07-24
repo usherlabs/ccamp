@@ -17,7 +17,7 @@ use lib::{
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 thread_local! {
-    static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
+    pub static REMITTANCE: RefCell<remittance::AvailableBalanceStore> = RefCell::default();
     static WITHHELD_REMITTANCE: RefCell<remittance::WithheldBalanceStore> = RefCell::default();
     static WITHHELD_AMOUNTS: RefCell<remittance::WithheldAmountsStore> = RefCell::default();
 
@@ -305,6 +305,7 @@ fn get_available_balance(
     account: String,
     dc_canister: Principal,
 ) -> remittance::Account {
+
     let chain: lib::Chain = chain.try_into().unwrap();
     let token: lib::Wallet = token.try_into().unwrap();
     let account: lib::Wallet = account.try_into().unwrap();
