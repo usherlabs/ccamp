@@ -30,3 +30,31 @@ pub fn remove_leading(vec: &Vec<u8>, element: u8) -> Vec<u8> {
     let result = &vec[start..];
     result.to_vec()
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_to_vec_u8(){
+        let hex_string = "0x5c8e3a7c16fa5cdde9f74751d6b2395176f05c55";
+        let hex_output = [92, 142, 58, 124, 22, 250, 92, 221, 233, 247, 71, 81, 214, 178, 57, 81, 118, 240, 92, 85].to_vec();
+
+
+        let output_vector = string_to_vec_u8(&hex_string);
+        assert_eq!(hex_output, output_vector);
+    }
+
+    #[test]
+    fn test_vec_u8_to_string(){
+        let hex_string = "5c8e3a7c16fa5cdde9f74751d6b2395176f05c55";
+        let hex_output = [92, 142, 58, 124, 22, 250, 92, 221, 233, 247, 71, 81, 214, 178, 57, 81, 118, 240, 92, 85].to_vec();
+
+
+        let output_hex_string = vec_u8_to_string(&hex_output);
+        assert_eq!(hex_string, output_hex_string);
+    }
+
+}

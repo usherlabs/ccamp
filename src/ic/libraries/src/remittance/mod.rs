@@ -2,6 +2,7 @@ pub mod config;
 pub mod random;
 pub mod types;
 pub mod utils;
+pub mod state;
 
 use crate::{
     crypto::{
@@ -12,26 +13,15 @@ use crate::{
     owner,
 };
 use candid::Principal;
-use config::{Config, Environment};
+use config::Config;
 use ic_cdk::caller;
 use types::Subscriber;
-use std::{cell::RefCell, collections::HashMap};
+use state::*;
 
 const REMITTANCE_EVENT: &str = "REMITTANCE";
 
-thread_local! {
-    pub static REMITTANCE: RefCell<types::AvailableBalanceStore> = RefCell::default();
-    pub static WITHHELD_REMITTANCE: RefCell<types::WithheldBalanceStore> = RefCell::default();
-    pub static WITHHELD_AMOUNTS: RefCell<types::WithheldAmountsStore> = RefCell::default();
-    pub static IS_PDC_CANISTER: RefCell<HashMap<Principal, bool>> = RefCell::default();
-    pub static DC_CANISTERS: RefCell<Vec<Principal>> = RefCell::default();
-    pub static REMITTANCE_RECIEPTS: RefCell<types::RemittanceRecieptsStore> = RefCell::default();
-    pub static CANISTER_BALANCE: RefCell<types::CanisterBalanceStore> = RefCell::default();
-    pub static CONFIG: RefCell<Config> = RefCell::default();
-}
-
 /// Helper function to initialize the state of the remittance canister
-pub fn init(env_opt: Option<Environment>) {
+pub fn init(env_opt: Option<config::Environment>) {
     owner::init_owner();
     random::init_ic_rand();
 
@@ -340,7 +330,7 @@ pub fn get_withheld_balance(
 }
 
 /// Get the reciept of a successfull withdrawal
-pub async fn get_reciept(
+pub fn get_reciept(
     dc_canister: Principal,
     nonce: u64,
 ) -> Result<types::RemittanceReciept, Box<dyn std::error::Error>> {

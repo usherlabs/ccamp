@@ -375,3 +375,33 @@ pub fn validate_dc_remittance_data(
 
     insufficient_canister_balance
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_recover_address_from_eth_signature() {
+        let nonce: u64 = 10;
+        let amount: u64 = 100;
+        let address = "0x5c8e3a7c16fa5cdde9f74751d6b2395176f05c55".to_string();
+        let chain_id = "ethereum:5";
+        let dc_canister_id = "br5f7-7uaaa-aaaaa-qaaca-cai";
+        let token_address = "0x5c8e3a7c16fa5cdde9f74751d6b2395176f05c55";
+        let hashed_output = [
+            8, 134, 176, 185, 121, 53, 193, 199, 185, 42, 238, 73, 122, 96, 223, 42, 230, 175, 125,
+            59, 72, 6, 36, 6, 38, 59, 74, 94, 51, 57, 117, 88,
+        ]
+        .to_vec();
+
+        let recovered_address = hash_remittance_parameters(
+            nonce,
+            amount,
+            &address,
+            chain_id,
+            dc_canister_id,
+            token_address,
+        );
+        assert_eq!(recovered_address, hashed_output);
+    }
+}
