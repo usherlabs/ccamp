@@ -15,6 +15,7 @@ thread_local! {
     pub static REMITTANCE_CANISTER: RefCell<Option<RemittanceSubscriber>> = RefCell::default();
 }
 
+pub mod permissions;
 pub type SubscriberStore = BTreeMap<Principal, Subscriber>;
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct Account {
