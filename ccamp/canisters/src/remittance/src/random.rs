@@ -29,6 +29,6 @@ pub fn init_ic_rand() {
     register_custom_getrandom!(custom_getrandom);
 }
 
-pub fn get_random_number() -> Result<u64, Box<dyn std::error::Error>> {
-    RNG.with(|rng| rng.borrow_mut().as_mut().?.gen())
+pub fn get_random_number() -> u64 {
+    RNG.with(|rng| rng.borrow_mut().as_mut().unwrap().gen())
 }
