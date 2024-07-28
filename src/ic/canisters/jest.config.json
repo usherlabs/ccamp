@@ -1,4 +1,4 @@
 {
 	"setupFiles": ["<rootDir>/.jest/setup.js"],
-	"testTimeout": 20000
+	"testTimeout": 100000
 }

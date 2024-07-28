@@ -99,7 +99,7 @@ fn get_reciept(dc_canister: Principal, nonce: u64) -> Result<RemittanceReciept, 
     verity_dp_ic::remittance::get_reciept(dc_canister, nonce).map_err(|e| e.to_string())
 }
 
-#[query]
+#[update]
 async fn public_key() -> Result<PublicKeyReply, String> {
     verity_dp_ic::remittance::public_key()
         .await

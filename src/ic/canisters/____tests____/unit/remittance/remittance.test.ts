@@ -5,7 +5,7 @@ const { canister } = getRemittanceCanister();
 
 describe('Remittance Canister', () => {
 	test('It Should return the canister name', async () => {
-		// const response = await canister.name();
-		// expect(response).toBe(CANISTER_NAME);
+		const response = await canister.name();
+		expect(response).toBe(CANISTER_NAME);
 	});
 });

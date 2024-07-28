@@ -8,37 +8,45 @@ type Subscriber = variant {
 };
 
 type Account = variant {
-    Ok : record {
-        balance : nat64;
-    };
-    Err : text;
+	Ok : record {
+		balance : nat64;
+	};
+	Err : text;
 };
 
 type RemittanceReply = variant {
-    Ok : record {
-        signature : text;
-        nonce : nat64;
-        amount : nat64;
-        hash : text;
-    };
-    Err : text;
+	Ok : record {
+		signature : text;
+		nonce : nat64;
+		amount : nat64;
+		hash : text;
+	};
+	Err : text;
 };
 
 type RecieptReply = variant {
-    Ok : record {
-        token : text;
-        chain : text;
-        amount : nat64;
-        account : text;
-        timestamp : nat64;
-    };
-    Err: text
+	Ok : record {
+		token : text;
+		chain : text;
+		amount : nat64;
+		account : text;
+		timestamp : nat64;
+	};
+	Err : text;
+};
+
+type PublickeyReply = variant {
+	Ok : record {
+		sec1_pk : text;
+		etherum_pk : text;
+	};
+	Err : text;
 };
 
 service : (opt variant { Development; Staging; Production }) -> {
 	"owner" : () -> (owner_principal : text) query;
 	"name" : () -> (canister_name : text) query;
-	"public_key" : () -> (record { sec1_pk : text; etherum_pk : text });
+	"public_key" : () -> (public_key_reply : PublickeyReply);
 
 	"subscribe_to_dc" : (dc_canister_id : principal) -> ();
 	"subscribe_to_pdc" : (pdc_canister_id : principal) -> ();
