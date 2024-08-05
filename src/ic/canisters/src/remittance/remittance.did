@@ -1,0 +1,60 @@
+type Counter = variant {
+	topic : text;
+	value : nat64;
+};
+
+type Subscriber = variant {
+	topic : text;
+};
+
+type Account = variant {
+	Ok : record {
+		balance : nat64;
+	};
+	Err : text;
+};
+
+type RemittanceReply = variant {
+	Ok : record {
+		signature : text;
+		nonce : nat64;
+		amount : nat64;
+		hash : text;
+	};
+	Err : text;
+};
+
+type RecieptReply = variant {
+	Ok : record {
+		token : text;
+		chain : text;
+		amount : nat64;
+		account : text;
+		timestamp : nat64;
+	};
+	Err : text;
+};
+
+type PublickeyReply = variant {
+	Ok : record {
+		sec1_pk : text;
+		etherum_pk : text;
+	};
+	Err : text;
+};
+
+service : (opt variant { Development; Staging; Production }) -> {
+	"owner" : () -> (owner_principal : text) query;
+	"name" : () -> (canister_name : text) query;
+	"public_key" : () -> (public_key_reply : PublickeyReply);
+
+	"subscribe_to_dc" : (dc_canister_id : principal) -> ();
+	"subscribe_to_pdc" : (pdc_canister_id : principal) -> ();
+
+	"remit" : (token : text, chain : text, account : text, dc_canister : principal, amount : nat64, proof : text) -> (RemittanceReply);
+	"get_reciept" : (dc_canister_id : principal, nonce : nat64) -> (RecieptReply) query;
+
+	"get_available_balance" : (token : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
+	"get_withheld_balance" : (ticker : text, chain : text, account : text, dc_canister : principal) -> (Account) query;
+	"get_canister_balance" : (ticker : text, chain : text, dc_canister : principal) -> (Account) query;
+};

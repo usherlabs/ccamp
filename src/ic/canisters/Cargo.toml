@@ -1,0 +1,18 @@
+[workspace]
+resolver = "1"
+members = [
+    "src/remittance",
+    "src/data_collection",
+    "src/protocol_data_collection",
+]
+
+[workspace.dependencies]
+candid = "0.7.4"
+ic-cdk = "0.5.1"
+ic-cdk-macros = "0.5.1"
+ic-cdk-timers = "0.1.1"
+serde = "1.0.126"
+serde_derive = "1.0.126"
+serde_json = "1.0"
+solabi = "0.2.0"
+verity_dp_ic = { path = "../libraries" }

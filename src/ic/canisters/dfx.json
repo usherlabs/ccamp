@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "remittance": {
+      "candid": "src/remittance/remittance.did",
+      "package": "remittance",
+      "type": "rust",
+      "declarations": {
+				"node_compatibility": true
+			}
+    },
+    "data_collection": {
+      "candid": "src/data_collection/data_collection.did",
+      "package": "data_collection",
+      "type": "rust",
+      "declarations": {
+				"node_compatibility": true
+			}
+    },
+    "protocol_data_collection": {
+      "candid": "src/protocol_data_collection/protocol_data_collection.did",
+      "package": "protocol_data_collection",
+      "type": "rust",
+      "declarations": {
+				"node_compatibility": true
+			}
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
