@@ -1,5 +1,5 @@
 [package]
-name = "request"
+name = "verity-client"
 version = "0.1.0"
 edition = "2021"
 
