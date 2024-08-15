@@ -103,6 +103,7 @@ impl RequestBuilder {
         let client = VerityClient {
             inner,
             config,
+            session_id: None,
             token: None,
         };
         (client, req)

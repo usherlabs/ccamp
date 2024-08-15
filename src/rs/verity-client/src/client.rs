@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
-use http::{header, HeaderValue, Method};
+use http::{HeaderValue, Method};
 use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use reqwest::{IntoUrl, Response, Url};
 use serde::{Deserialize, Serialize};
@@ -10,17 +10,23 @@ use uuid::Uuid;
 use crate::{request::RequestBuilder, Result};
 
 #[derive(Clone)]
+pub struct AnalysisConfig {
+    pub analysis_url: String,
+    pub signing_key: SigningKey,
+}
+
+#[derive(Clone)]
 pub struct VerityClientConfig {
     pub prover_url: String,
     pub prover_zmq: String,
-    pub analysis_url: String,
-    pub signing_key: SigningKey,
+    pub analysis: Option<AnalysisConfig>,
 }
 
 #[derive(Clone)]
 pub struct VerityClient {
     pub(crate) inner: reqwest::Client,
     pub(crate) config: VerityClientConfig,
+    pub(crate) session_id: Option<Uuid>,
     pub(crate) token: Option<String>,
 }
 
@@ -29,17 +35,26 @@ impl VerityClient {
         return Self {
             inner: reqwest::Client::new(),
             config,
+            session_id: None,
             token: None,
         };
     }
 
     async fn auth(&mut self) {
+        let analysis = self
+            .config
+            .analysis
+            .as_ref()
+            .expect("analysis config is required");
+
         let (session_id, challenge) = self.get_challenge().await;
 
-        let signature: Signature = self.config.signing_key.sign(challenge.as_bytes());
+        let signature: Signature = analysis.signing_key.sign(challenge.as_bytes());
         let signature = base64.encode(signature.to_der().to_bytes());
 
         let token = self.post_challenge(session_id, signature).await;
+
+        self.session_id = Some(session_id);
         self.token = Some(token);
     }
 
@@ -55,10 +70,16 @@ impl VerityClient {
             challenge: String,
         }
 
-        let url = format!("{}/auth/challenge", self.config.analysis_url);
+        let analysis = self
+            .config
+            .analysis
+            .as_ref()
+            .expect("analysis config is required");
+        let url = format!("{}/auth/challenge", analysis.analysis_url);
+
         let client = reqwest::Client::new();
 
-        let verifying_key = VerifyingKey::from(&self.config.signing_key);
+        let verifying_key = VerifyingKey::from(&analysis.signing_key);
 
         let request = Request {
             public_key: base64.encode(verifying_key.to_sec1_bytes()),
@@ -89,7 +110,13 @@ impl VerityClient {
             token: String,
         }
 
-        let url = format!("{}/auth/challenge", self.config.analysis_url);
+        let analysis = self
+            .config
+            .analysis
+            .as_ref()
+            .expect("analysis config is required");
+        let url = format!("{}/auth/challenge", analysis.analysis_url);
+
         let client = reqwest::Client::new();
 
         let request = Request {
@@ -160,20 +187,22 @@ impl VerityClient {
     }
 
     pub async fn execute_request(&mut self, mut req: reqwest::Request) -> Result<Response> {
-        if self.token.is_none() {
-            self.auth().await;
+        let proxy_url = &String::from(req.url().as_str());
+        let headers = req.headers_mut();
+
+        if self.config.analysis.is_some() {
+            if self.token.is_none() {
+                self.auth().await;
+            }
+
+            let session_id = self.session_id.expect("session_id is required");
+            headers.append(
+                "T-SESSION-ID",
+                HeaderValue::from_str(&format!("{}", session_id)).unwrap(),
+            );
         }
 
-        let proxy_url = &String::from(req.url().as_str());
-
-        let headers = req.headers_mut();
         headers.append("T-PROXY-URL", HeaderValue::from_str(proxy_url).unwrap());
-
-        let header_value = &format!("Bearer {}", self.token.clone().unwrap());
-        headers.append(
-            header::AUTHORIZATION,
-            HeaderValue::from_str(header_value).unwrap(),
-        );
 
         *req.url_mut() = Url::from_str(&format!("{}/proxy", self.config.prover_url)).unwrap();
 

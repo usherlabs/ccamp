@@ -1,5 +1,5 @@
 use k256::ecdsa::SigningKey;
-use verity_client::client::{VerityClient, VerityClientConfig};
+use verity_client::client::{AnalysisConfig, VerityClient, VerityClientConfig};
 
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
@@ -11,8 +11,10 @@ async fn main() -> Result<(), reqwest::Error> {
     let config = VerityClientConfig {
         prover_url: String::from("http://127.0.0.1:8080"),
         prover_zmq: String::from("tcp://127.0.0.1:8000"),
-        analysis_url: String::from("http://127.0.0.1:8000"),
-        signing_key,
+        analysis: Some(AnalysisConfig {
+            analysis_url: String::from("http://127.0.0.1:8000"),
+            signing_key,
+        }),
     };
 
     let json: serde_json::Value = VerityClient::new(config)
