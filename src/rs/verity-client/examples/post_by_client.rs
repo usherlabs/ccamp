@@ -10,7 +10,7 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let config = VerityClientConfig {
         prover_url: String::from("http://127.0.0.1:8080"),
-        prover_zmq: String::from("tcp://127.0.0.1:8080"),
+        prover_zmq: String::from("tcp://127.0.0.1:5556"),
         analysis: Some(AnalysisConfig {
             analysis_url: String::from("http://127.0.0.1:8000"),
             signing_key,

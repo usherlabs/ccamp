@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::{future::IntoFuture, str::FromStr};
 
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
 use http::{HeaderValue, Method};
 use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-use reqwest::{IntoUrl, Response, Url};
+use reqwest::{multipart::Part, IntoUrl, Response, Url};
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 use crate::{request::RequestBuilder, Result};
@@ -208,6 +209,71 @@ impl VerityClient {
 
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
-        req.send().await.map_err(crate::Error::Reqwest)
+        let (response, proof) = tokio::join!(
+            req.send(),
+            self.receive_proof(self.session_id.unwrap().to_string())
+        );
+
+        let (notary_pub_key, proof) = proof.unwrap();
+
+        if self.config.analysis.is_some() {
+            self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+        }
+
+        response.map_err(crate::Error::Reqwest)
+    }
+
+    fn receive_proof(&self, session_id: String) -> JoinHandle<(String, String)> {
+        let prover_zmq = self.config.prover_zmq.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let context = zmq::Context::new();
+            let subscriber = context.socket(zmq::SUB).unwrap();
+            assert!(subscriber.connect(prover_zmq.as_str()).is_ok());
+            assert!(subscriber.set_subscribe(session_id.as_bytes()).is_ok());
+
+            let proof = subscriber.recv_string(0).unwrap().unwrap();
+
+            // TODO: Gracefully shutdown the ZMQ subscriber with the context
+            subscriber.set_unsubscribe(b"").unwrap();
+
+            // TODO: Better split session_id and the proof. See multipart ZMQ messaging.
+            let parts: Vec<&str> = proof.splitn(3, "|").collect();
+
+            (parts[1].to_string(), parts[2].to_string())
+        })
+        .into_future()
+    }
+
+    async fn send_proof_to_analysis(&self, notary_pub_key: &str, proof: &str) {
+        let analysis_config = self
+            .config
+            .analysis
+            .as_ref()
+            .expect("analysis configuration not set")
+            .clone();
+
+        let url = format!("{}/verify", analysis_config.analysis_url);
+
+        let client = reqwest::Client::new();
+
+        let form = reqwest::multipart::Form::new()
+            .part(
+                "session_id",
+                Part::text(self.session_id.unwrap().to_string()),
+            )
+            .part("proof", Part::bytes(proof.as_bytes().to_vec()))
+            .part(
+                "notary_pub_key",
+                Part::bytes(notary_pub_key.as_bytes().to_vec()),
+            );
+
+        let response = client
+            .post(url)
+            .bearer_auth(self.token.as_ref().unwrap())
+            .multipart(form)
+            .send()
+            .await;
+        println!("{:?}", response);
     }
 }
