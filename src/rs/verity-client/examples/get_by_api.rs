@@ -9,13 +9,6 @@ async fn main() -> Result<(), reqwest::Error> {
             "https://jsonplaceholder.typicode.com/posts/98",
         )
         .header("T-REDACTED", String::from("res:body:dolor"))
-        .json(&serde_json::json!({
-            "userId": 1000,
-            "firstName": "John",
-            "lastName": "Smith",
-            "fullName": "John Smith",
-            "favoriteActor": "Johnny Depp"
-        }))
         .send()
         .await
         .unwrap()
