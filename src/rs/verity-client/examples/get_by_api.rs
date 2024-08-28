@@ -17,9 +17,11 @@ async fn main() -> Result<(), reqwest::Error> {
             "favoriteActor": "Johnny Depp"
         }))
         .send()
-        .await?
+        .await
+        .unwrap()
         .json()
-        .await?;
+        .await
+        .unwrap();
 
     println!("{:#?}", json);
 

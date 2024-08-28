@@ -3,9 +3,11 @@ async fn main() -> Result<(), reqwest::Error> {
     let json: serde_json::Value = reqwest::Client::new()
         .get("https://jsonplaceholder.typicode.com/posts/98")
         .send()
-        .await?
+        .await
+        .unwrap()
         .json()
-        .await?;
+        .await
+        .unwrap();
 
     println!("{:#?}", json);
 

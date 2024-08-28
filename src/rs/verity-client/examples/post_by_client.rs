@@ -31,7 +31,8 @@ async fn main() -> Result<(), reqwest::Error> {
         .await
         .unwrap()
         .json()
-        .await?;
+        .await
+        .unwrap();
 
     println!("{:#?}", json);
 
