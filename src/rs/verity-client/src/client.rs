@@ -209,15 +209,21 @@ impl VerityClient {
 
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
-        let (response, proof) = tokio::join!(
-            req.send(),
-            self.receive_proof(self.session_id.unwrap().to_string())
-        );
+        let proof_future = async {
+            match self.session_id {
+                Some(session_id) => Some(self.receive_proof(session_id.to_string()).await),
+                None => None,
+            }
+        };
 
-        let (notary_pub_key, proof) = proof.unwrap();
+        let (response, proof) = tokio::join!(req.send(), proof_future);
 
-        if self.config.analysis.is_some() {
-            self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+        if let Some(proof) = proof {
+            let (notary_pub_key, proof) = proof.unwrap();
+
+            if self.config.analysis.is_some() {
+                self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+            }
         }
 
         response.map_err(crate::Error::Reqwest)
