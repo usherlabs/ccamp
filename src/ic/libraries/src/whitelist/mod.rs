@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap};
 use candid::Principal;
 
 thread_local! {
-    static WHITE_LIST: RefCell<HashMap<Principal, bool>> = RefCell::default();
+    pub static WHITE_LIST: RefCell<HashMap<Principal, bool>> = RefCell::default();
 }
 
 pub fn add_to_whitelist(principal: Principal) {
