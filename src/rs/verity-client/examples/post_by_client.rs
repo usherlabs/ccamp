@@ -1,19 +1,19 @@
-use k256::ecdsa::SigningKey;
+use k256::SecretKey;
+use rand::rngs::OsRng;
 use verity_client::client::{AnalysisConfig, VerityClient, VerityClientConfig};
 
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     println!("Proving a POST request using VerityClient...");
 
-    let mut rng = rand::thread_rng();
-    let signing_key = SigningKey::random(&mut rng);
+    let secret_key = SecretKey::random(&mut OsRng);
 
     let config = VerityClientConfig {
         prover_url: String::from("http://127.0.0.1:8080"),
         prover_zmq: String::from("tcp://127.0.0.1:5556"),
         analysis: Some(AnalysisConfig {
-            analysis_url: String::from("http://127.0.0.1:8000"),
-            signing_key,
+            analysis_url: String::from("http://127.0.0.1:8888"),
+            secret_key,
         }),
     };
 
