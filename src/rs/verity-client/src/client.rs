@@ -1,8 +1,11 @@
 use std::{future::IntoFuture, str::FromStr};
 
-use base64::{engine::general_purpose::STANDARD as base64, Engine};
+use base64::prelude::*;
+use base64::Engine;
 use http::{HeaderValue, Method};
-use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use k256::ecdsa::SigningKey;
+use k256::ecdsa::{signature::Signer, Signature};
+use k256::SecretKey;
 use reqwest::{multipart::Part, IntoUrl, Response, Url};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -13,7 +16,7 @@ use crate::{request::RequestBuilder, Result};
 #[derive(Clone)]
 pub struct AnalysisConfig {
     pub analysis_url: String,
-    pub signing_key: SigningKey,
+    pub secret_key: SecretKey,
 }
 
 #[derive(Clone)]
@@ -50,8 +53,9 @@ impl VerityClient {
 
         let (session_id, challenge) = self.get_challenge().await;
 
-        let signature: Signature = analysis.signing_key.sign(challenge.as_bytes());
-        let signature = base64.encode(signature.to_der().to_bytes());
+        let signing_key: SigningKey = analysis.secret_key.clone().into();
+        let signature: Signature = signing_key.sign(challenge.as_ref());
+        let signature = BASE64_STANDARD.encode(signature.to_der().to_bytes());
 
         let token = self.post_challenge(session_id, signature).await;
 
@@ -59,10 +63,10 @@ impl VerityClient {
         self.token = Some(token);
     }
 
-    async fn get_challenge(&self) -> (Uuid, String) {
+    async fn get_challenge(&self) -> (Uuid, Vec<u8>) {
         #[derive(Debug, Serialize)]
         struct Request {
-            public_key: String,
+            public_key_pem: String,
         }
 
         #[derive(Debug, Deserialize)]
@@ -76,14 +80,14 @@ impl VerityClient {
             .analysis
             .as_ref()
             .expect("analysis config is required");
-        let url = format!("{}/auth/challenge", analysis.analysis_url);
+        let url = format!("{}/auth", analysis.analysis_url);
 
         let client = reqwest::Client::new();
 
-        let verifying_key = VerifyingKey::from(&analysis.signing_key);
+        let public_key = analysis.secret_key.public_key();
 
         let request = Request {
-            public_key: base64.encode(verifying_key.to_sec1_bytes()),
+            public_key_pem: public_key.to_string(),
         };
 
         let response = client
@@ -96,7 +100,10 @@ impl VerityClient {
             .await
             .unwrap();
 
-        (response.session_id, response.challenge)
+        (
+            response.session_id,
+            BASE64_STANDARD.decode(response.challenge.clone()).unwrap(),
+        )
     }
 
     async fn post_challenge(&self, session_id: Uuid, signature: String) -> String {
@@ -116,7 +123,7 @@ impl VerityClient {
             .analysis
             .as_ref()
             .expect("analysis config is required");
-        let url = format!("{}/auth/challenge", analysis.analysis_url);
+        let url = format!("{}/auth", analysis.analysis_url);
 
         let client = reqwest::Client::new();
 
@@ -209,15 +216,21 @@ impl VerityClient {
 
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
-        let (response, proof) = tokio::join!(
-            req.send(),
-            self.receive_proof(self.session_id.unwrap().to_string())
-        );
+        let proof_future = async {
+            match self.session_id {
+                Some(session_id) => Some(self.receive_proof(session_id.to_string()).await),
+                None => None,
+            }
+        };
 
-        let (notary_pub_key, proof) = proof.unwrap();
+        let (response, proof) = tokio::join!(req.send(), proof_future);
 
-        if self.config.analysis.is_some() {
-            self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+        if let Some(proof) = proof {
+            let (notary_pub_key, proof) = proof.unwrap();
+
+            if self.config.analysis.is_some() {
+                self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+            }
         }
 
         response.map_err(crate::Error::Reqwest)

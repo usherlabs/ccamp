@@ -1,0 +1,16 @@
+[package]
+name = "verity-dp-rs-tests-load"
+description = "Verity DP Rust Tests: Load Test"
+version = "0.0.1-alpha.1"
+authors = ["Usher Labs <labs@usher.so>"]
+repository = "https://github.com/usherlabs/ccamp/"
+homepage = "https://www.usher.so/"
+edition = "2021"
+
+[dependencies]
+verity-client = { path = "../../verity-client" }
+k256 = { version = "0.13", features = ["pem"] }
+rand = "0.8"
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json", "multipart"] }
+tokio = { version = "1.39", features = ["macros", "rt-multi-thread"] }
