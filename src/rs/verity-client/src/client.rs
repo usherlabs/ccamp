@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
+use crate::auth::is_jwttoken_expired;
 use crate::{request::RequestBuilder, Result};
 
 #[derive(Clone)]
@@ -58,7 +59,6 @@ impl VerityClient {
         let signature = BASE64_STANDARD.encode(signature.to_der().to_bytes());
 
         let token = self.post_challenge(session_id, signature).await;
-
         self.session_id = Some(session_id);
         self.token = Some(token);
     }
@@ -199,7 +199,7 @@ impl VerityClient {
         let headers = req.headers_mut();
 
         if self.config.analysis.is_some() {
-            if self.token.is_none() {
+            if self.token.is_none() || is_jwttoken_expired(self.token.clone().unwrap()) {
                 self.auth().await;
             }
 
