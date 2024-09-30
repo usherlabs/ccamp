@@ -251,7 +251,7 @@ impl VerityClient {
             subscriber.set_unsubscribe(b"").unwrap();
 
             // TODO: Better split session_id and the proof. See multipart ZMQ messaging.
-            let parts: Vec<&str> = proof.splitn(3, "|").collect();
+            let parts: Vec<&str> = proof.splitn(4, "|").collect();
 
             (parts[1].to_string(), parts[2].to_string())
         })
