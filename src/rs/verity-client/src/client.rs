@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
+use crate::auth::is_jwttoken_expired;
 use crate::{request::RequestBuilder, Result};
 
 #[derive(Clone)]
@@ -58,7 +59,6 @@ impl VerityClient {
         let signature = BASE64_STANDARD.encode(signature.to_der().to_bytes());
 
         let token = self.post_challenge(session_id, signature).await;
-
         self.session_id = Some(session_id);
         self.token = Some(token);
     }
@@ -199,7 +199,7 @@ impl VerityClient {
         let headers = req.headers_mut();
 
         if self.config.analysis.is_some() {
-            if self.token.is_none() {
+            if self.token.is_none() || is_jwttoken_expired(self.token.clone().unwrap()) {
                 self.auth().await;
             }
 
@@ -251,7 +251,7 @@ impl VerityClient {
             subscriber.set_unsubscribe(b"").unwrap();
 
             // TODO: Better split session_id and the proof. See multipart ZMQ messaging.
-            let parts: Vec<&str> = proof.splitn(3, "|").collect();
+            let parts: Vec<&str> = proof.splitn(4, "|").collect();
 
             (parts[1].to_string(), parts[2].to_string())
         })
