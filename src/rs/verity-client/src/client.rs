@@ -45,7 +45,7 @@ impl VerityClient {
         };
     }
 
-    async fn auth(&mut self) {
+    pub async fn auth(&mut self) {
         let analysis = self
             .config
             .analysis
@@ -173,8 +173,8 @@ impl VerityClient {
     /// This method fails whenever the supplied `Url` cannot be parsed.
     pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
         RequestBuilder {
+            client: self.clone(),
             inner: self.inner.request(method, url),
-            config: self.config.clone(),
         }
     }
 
@@ -202,13 +202,13 @@ impl VerityClient {
             if self.token.is_none() || is_jwttoken_expired(self.token.clone().unwrap()) {
                 self.auth().await;
             }
-
-            let session_id = self.session_id.expect("session_id is required");
-            headers.append(
-                "T-SESSION-ID",
-                HeaderValue::from_str(&format!("{}", session_id)).unwrap(),
-            );
         }
+
+        let request_id = Uuid::new_v4();
+        headers.append(
+            "T-REQUEST-ID",
+            HeaderValue::from_str(&format!("{}", request_id)).unwrap(),
+        );
 
         headers.append("T-PROXY-URL", HeaderValue::from_str(proxy_url).unwrap());
 
@@ -217,9 +217,10 @@ impl VerityClient {
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
         let proof_future = async {
-            match self.session_id {
-                Some(session_id) => Some(self.receive_proof(session_id.to_string()).await),
-                None => None,
+            if self.session_id.is_some() {
+                Some(self.receive_proof(request_id.to_string()).await)
+            } else {
+                None
             }
         };
 
@@ -236,14 +237,14 @@ impl VerityClient {
         response.map_err(crate::Error::Reqwest)
     }
 
-    fn receive_proof(&self, session_id: String) -> JoinHandle<(String, String)> {
+    fn receive_proof(&self, request_id: String) -> JoinHandle<(String, String)> {
         let prover_zmq = self.config.prover_zmq.clone();
 
         tokio::task::spawn_blocking(move || {
             let context = zmq::Context::new();
             let subscriber = context.socket(zmq::SUB).unwrap();
             assert!(subscriber.connect(prover_zmq.as_str()).is_ok());
-            assert!(subscriber.set_subscribe(session_id.as_bytes()).is_ok());
+            assert!(subscriber.set_subscribe(request_id.as_bytes()).is_ok());
 
             let proof = subscriber.recv_string(0).unwrap().unwrap();
 
