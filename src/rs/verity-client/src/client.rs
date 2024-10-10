@@ -2,6 +2,7 @@ use std::{future::IntoFuture, str::FromStr};
 
 use base64::prelude::*;
 use base64::Engine;
+use http::StatusCode;
 use http::{HeaderValue, Method};
 use k256::ecdsa::SigningKey;
 use k256::ecdsa::{signature::Signer, Signature};
@@ -288,6 +289,10 @@ impl VerityClient {
             .multipart(form)
             .send()
             .await;
-        println!("{:?}", response);
+
+        let response = response.unwrap();
+        if response.status().is_server_error() {
+            println!("{:?}", response);
+        }
     }
 }
