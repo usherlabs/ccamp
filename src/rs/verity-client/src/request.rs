@@ -1,10 +1,13 @@
 use std::convert::TryFrom;
 
 use http::{HeaderName, HeaderValue};
-use reqwest::{header::HeaderMap, Body, Request, Response};
+use reqwest::{header::HeaderMap, Body, Request};
 use serde::Serialize;
 
-use crate::{client::VerityClient, error::Result};
+use crate::{
+    client::{VerityClient, VerityResponse},
+    error::Result,
+};
 
 /// A builder to construct the properties of a `Request`.
 ///
@@ -122,7 +125,7 @@ impl RequestBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn send(self) -> Result<Response> {
+    pub async fn send(self) -> Result<VerityResponse> {
         let (mut client, req) = self.build_split();
         client.execute_request(req?).await
     }

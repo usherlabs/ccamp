@@ -12,7 +12,8 @@ use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 use crate::auth::is_jwttoken_expired;
-use crate::{request::RequestBuilder, Result};
+use crate::request::RequestBuilder;
+use crate::Error;
 
 #[derive(Clone)]
 pub struct AnalysisConfig {
@@ -33,6 +34,12 @@ pub struct VerityClient {
     pub(crate) config: VerityClientConfig,
     pub(crate) session_id: Option<Uuid>,
     pub(crate) token: Option<String>,
+}
+
+pub struct VerityResponse {
+    pub subject: Response,
+    pub proof: String,
+    pub notary_pub_key: String,
 }
 
 impl VerityClient {
@@ -190,11 +197,17 @@ impl VerityClient {
     ///
     /// This method fails if there was an error while sending request,
     /// redirect loop was detected or redirect limit was exhausted.
-    pub async fn execute(&mut self, request: reqwest::Request) -> Result<Response> {
+    pub async fn execute(
+        &mut self,
+        request: reqwest::Request,
+    ) -> Result<VerityResponse, crate::Error> {
         self.execute_request(request).await
     }
 
-    pub async fn execute_request(&mut self, mut req: reqwest::Request) -> Result<Response> {
+    pub async fn execute_request(
+        &mut self,
+        mut req: reqwest::Request,
+    ) -> Result<VerityResponse, crate::Error> {
         let proxy_url = &String::from(req.url().as_str());
         let headers = req.headers_mut();
 
@@ -216,25 +229,32 @@ impl VerityClient {
 
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
-        let proof_future = async {
-            if self.session_id.is_some() {
-                Some(self.receive_proof(request_id.to_string()).await)
-            } else {
-                None
-            }
-        };
+        let proof_future = async { self.receive_proof(request_id.to_string()).await };
 
         let (response, proof) = tokio::join!(req.send(), proof_future);
+        let subject = match response {
+            Ok(response) => response,
+            Err(e) => return Err(Error::Reqwest(e)),
+        };
 
-        if let Some(proof) = proof {
-            let (notary_pub_key, proof) = proof.unwrap();
+        let proof = match proof {
+            Ok(proof) => proof,
+            Err(e) => return Err(Error::Verity(e.into())),
+        };
 
-            if self.config.analysis.is_some() {
-                self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+        let (notary_pub_key, proof) = proof;
+
+        if self.config.analysis.is_some() {
+            if let Err(e) = self.send_proof_to_analysis(&notary_pub_key, &proof).await {
+                return Err(Error::Verity(e.into()));
             }
         }
 
-        response.map_err(crate::Error::Reqwest)
+        Ok(VerityResponse {
+            subject,
+            proof,
+            notary_pub_key,
+        })
     }
 
     fn receive_proof(&self, request_id: String) -> JoinHandle<(String, String)> {
@@ -259,7 +279,11 @@ impl VerityClient {
         .into_future()
     }
 
-    async fn send_proof_to_analysis(&self, notary_pub_key: &str, proof: &str) {
+    async fn send_proof_to_analysis(
+        &self,
+        notary_pub_key: &str,
+        proof: &str,
+    ) -> Result<Response, reqwest::Error> {
         let analysis_config = self
             .config
             .analysis
@@ -282,12 +306,11 @@ impl VerityClient {
                 Part::bytes(notary_pub_key.as_bytes().to_vec()),
             );
 
-        let response = client
+        client
             .post(url)
             .bearer_auth(self.token.as_ref().unwrap())
             .multipart(form)
             .send()
-            .await;
-        println!("{:?}", response);
+            .await
     }
 }

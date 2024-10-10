@@ -20,7 +20,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let mut verity_client = VerityClient::new(config);
     verity_client.auth().await;
 
-    let json: serde_json::Value = verity_client
+    let response = verity_client
         .post(String::from("https://jsonplaceholder.typicode.com/posts"))
         .json(&serde_json::json!({
             "userId": 1000,
@@ -32,14 +32,12 @@ async fn main() -> Result<(), reqwest::Error> {
         .redact(String::from("req:body:firstName, res:body:firstName"))
         .send()
         .await
-        .unwrap()
-        .json()
-        .await
         .unwrap();
 
+    let json: serde_json::Value = response.subject.json().await.unwrap();
     println!("{:#?}", json);
 
-    let json: serde_json::Value = verity_client
+    let response = verity_client
         .post(String::from("https://jsonplaceholder.typicode.com/posts"))
         .json(&serde_json::json!({
             "userId": 1000,
@@ -51,11 +49,9 @@ async fn main() -> Result<(), reqwest::Error> {
         .redact(String::from("req:body:firstName, res:body:firstName"))
         .send()
         .await
-        .unwrap()
-        .json()
-        .await
         .unwrap();
 
+    let json: serde_json::Value = response.subject.json().await.unwrap();
     println!("{:#?}", json);
 
     Ok(())
