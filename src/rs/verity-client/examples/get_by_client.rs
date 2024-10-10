@@ -1,21 +1,20 @@
 use k256::SecretKey;
 use rand::rngs::OsRng;
-use verity_client::client::{VerityClient, VerityClientConfig};
+use verity_client::client::{AnalysisConfig, VerityClient, VerityClientConfig};
 
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     println!("Proving a GET request using VerityClient...");
 
-    let _secret_key = SecretKey::random(&mut OsRng);
+    let secret_key = SecretKey::random(&mut OsRng);
 
     let config = VerityClientConfig {
         prover_url: String::from("http://127.0.0.1:8080"),
         prover_zmq: String::from("tcp://127.0.0.1:5556"),
-        analysis: None,
-        // analysis: Some(AnalysisConfig {
-        //     analysis_url: String::from("http://127.0.0.1:4000"),
-        //     secret_key,
-        // }),
+        analysis: Some(AnalysisConfig {
+            analysis_url: String::from("http://127.0.0.1:4000"),
+            secret_key,
+        }),
     };
 
     let response = VerityClient::new(config)
