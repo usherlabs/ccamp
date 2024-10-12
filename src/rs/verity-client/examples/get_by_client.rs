@@ -17,16 +17,14 @@ async fn main() -> Result<(), reqwest::Error> {
         }),
     };
 
-    let json: serde_json::Value = VerityClient::new(config)
+    let response = VerityClient::new(config)
         .get("https://jsonplaceholder.typicode.com/posts/98")
         .redact(String::from("res:body:dolor"))
         .send()
         .await
-        .unwrap()
-        .json()
-        .await
         .unwrap();
 
+    let json: serde_json::Value = response.subject.json().await.unwrap();
     println!("{:#?}", json);
 
     Ok(())
