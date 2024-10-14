@@ -1,11 +1,11 @@
 use std::convert::TryFrom;
 
 use http::{HeaderName, HeaderValue};
-use reqwest::{header::HeaderMap, Body, Request, Response};
+use reqwest::{header::HeaderMap, Body, Request};
 use serde::Serialize;
 
 use crate::{
-    client::{VerityClient, VerityClientConfig},
+    client::{VerityClient, VerityResponse},
     error::Result,
 };
 
@@ -14,20 +14,11 @@ use crate::{
 /// To construct a `RequestBuilder`, refer to the `Client` documentation.
 #[must_use = "RequestBuilder does nothing until you 'send' it"]
 pub struct RequestBuilder {
+    pub(crate) client: VerityClient,
     pub(crate) inner: reqwest::RequestBuilder,
-    pub(crate) config: VerityClientConfig,
 }
 
 impl RequestBuilder {
-    /// Assemble a builder starting from an existing `Client` and a `Request`.
-    pub fn from_parts(client: VerityClient, request: Request) -> RequestBuilder {
-        let inner = reqwest::RequestBuilder::from_parts(client.inner, request);
-        RequestBuilder {
-            inner,
-            config: client.config,
-        }
-    }
-
     /// Add a `Header` to this Request.
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
@@ -97,15 +88,9 @@ impl RequestBuilder {
     /// This is similar to [`RequestBuilder::build()`], but also returns the
     /// embedded `VerityClient`.
     pub fn build_split(self) -> (VerityClient, reqwest::Result<Request>) {
-        let Self { inner, config, .. } = self;
-        let (inner, req) = inner.build_split();
+        let Self { inner, client, .. } = self;
+        let (_, req) = inner.build_split();
 
-        let client = VerityClient {
-            inner,
-            config,
-            session_id: None,
-            token: None,
-        };
         (client, req)
     }
 
@@ -140,7 +125,7 @@ impl RequestBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn send(self) -> Result<Response> {
+    pub async fn send(self) -> Result<VerityResponse> {
         let (mut client, req) = self.build_split();
         client.execute_request(req?).await
     }

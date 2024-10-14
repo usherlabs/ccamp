@@ -2,6 +2,7 @@ use std::{future::IntoFuture, str::FromStr};
 
 use base64::prelude::*;
 use base64::Engine;
+use http::StatusCode;
 use http::{HeaderValue, Method};
 use k256::ecdsa::SigningKey;
 use k256::ecdsa::{signature::Signer, Signature};
@@ -11,7 +12,9 @@ use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-use crate::{request::RequestBuilder, Result};
+use crate::auth::is_jwttoken_expired;
+use crate::request::RequestBuilder;
+use crate::Error;
 
 #[derive(Clone)]
 pub struct AnalysisConfig {
@@ -34,6 +37,12 @@ pub struct VerityClient {
     pub(crate) token: Option<String>,
 }
 
+pub struct VerityResponse {
+    pub subject: Response,
+    pub proof: String,
+    pub notary_pub_key: String,
+}
+
 impl VerityClient {
     pub fn new(config: VerityClientConfig) -> Self {
         return Self {
@@ -44,7 +53,7 @@ impl VerityClient {
         };
     }
 
-    async fn auth(&mut self) {
+    pub async fn auth(&mut self) {
         let analysis = self
             .config
             .analysis
@@ -58,7 +67,6 @@ impl VerityClient {
         let signature = BASE64_STANDARD.encode(signature.to_der().to_bytes());
 
         let token = self.post_challenge(session_id, signature).await;
-
         self.session_id = Some(session_id);
         self.token = Some(token);
     }
@@ -173,8 +181,8 @@ impl VerityClient {
     /// This method fails whenever the supplied `Url` cannot be parsed.
     pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
         RequestBuilder {
+            client: self.clone(),
             inner: self.inner.request(method, url),
-            config: self.config.clone(),
         }
     }
 
@@ -190,25 +198,31 @@ impl VerityClient {
     ///
     /// This method fails if there was an error while sending request,
     /// redirect loop was detected or redirect limit was exhausted.
-    pub async fn execute(&mut self, request: reqwest::Request) -> Result<Response> {
+    pub async fn execute(
+        &mut self,
+        request: reqwest::Request,
+    ) -> Result<VerityResponse, crate::Error> {
         self.execute_request(request).await
     }
 
-    pub async fn execute_request(&mut self, mut req: reqwest::Request) -> Result<Response> {
+    pub async fn execute_request(
+        &mut self,
+        mut req: reqwest::Request,
+    ) -> Result<VerityResponse, crate::Error> {
         let proxy_url = &String::from(req.url().as_str());
         let headers = req.headers_mut();
 
         if self.config.analysis.is_some() {
-            if self.token.is_none() {
+            if self.token.is_none() || is_jwttoken_expired(self.token.clone().unwrap()) {
                 self.auth().await;
             }
-
-            let session_id = self.session_id.expect("session_id is required");
-            headers.append(
-                "T-SESSION-ID",
-                HeaderValue::from_str(&format!("{}", session_id)).unwrap(),
-            );
         }
+
+        let request_id = Uuid::new_v4();
+        headers.append(
+            "T-REQUEST-ID",
+            HeaderValue::from_str(&format!("{}", request_id)).unwrap(),
+        );
 
         headers.append("T-PROXY-URL", HeaderValue::from_str(proxy_url).unwrap());
 
@@ -216,34 +230,42 @@ impl VerityClient {
 
         let req = reqwest::RequestBuilder::from_parts(self.inner.clone(), req);
 
-        let proof_future = async {
-            match self.session_id {
-                Some(session_id) => Some(self.receive_proof(session_id.to_string()).await),
-                None => None,
-            }
-        };
+        let proof_future = async { self.receive_proof(request_id.to_string()).await };
 
         let (response, proof) = tokio::join!(req.send(), proof_future);
+        let subject = match response {
+            Ok(response) => response,
+            Err(e) => return Err(Error::Reqwest(e)),
+        };
 
-        if let Some(proof) = proof {
-            let (notary_pub_key, proof) = proof.unwrap();
+        let proof = match proof {
+            Ok(proof) => proof,
+            Err(e) => return Err(Error::Verity(e.into())),
+        };
 
-            if self.config.analysis.is_some() {
-                self.send_proof_to_analysis(&notary_pub_key, &proof).await;
+        let (notary_pub_key, proof) = proof;
+
+        if self.config.analysis.is_some() {
+            if let Err(e) = self.send_proof_to_analysis(&notary_pub_key, &proof).await {
+                return Err(Error::Verity(e.into()));
             }
         }
 
-        response.map_err(crate::Error::Reqwest)
+        Ok(VerityResponse {
+            subject,
+            proof,
+            notary_pub_key,
+        })
     }
 
-    fn receive_proof(&self, session_id: String) -> JoinHandle<(String, String)> {
+    fn receive_proof(&self, request_id: String) -> JoinHandle<(String, String)> {
         let prover_zmq = self.config.prover_zmq.clone();
 
         tokio::task::spawn_blocking(move || {
             let context = zmq::Context::new();
             let subscriber = context.socket(zmq::SUB).unwrap();
             assert!(subscriber.connect(prover_zmq.as_str()).is_ok());
-            assert!(subscriber.set_subscribe(session_id.as_bytes()).is_ok());
+            assert!(subscriber.set_subscribe(request_id.as_bytes()).is_ok());
 
             let proof = subscriber.recv_string(0).unwrap().unwrap();
 
@@ -251,14 +273,18 @@ impl VerityClient {
             subscriber.set_unsubscribe(b"").unwrap();
 
             // TODO: Better split session_id and the proof. See multipart ZMQ messaging.
-            let parts: Vec<&str> = proof.splitn(3, "|").collect();
+            let parts: Vec<&str> = proof.splitn(4, "|").collect();
 
             (parts[1].to_string(), parts[2].to_string())
         })
         .into_future()
     }
 
-    async fn send_proof_to_analysis(&self, notary_pub_key: &str, proof: &str) {
+    async fn send_proof_to_analysis(
+        &self,
+        notary_pub_key: &str,
+        proof: &str,
+    ) -> Result<Response, reqwest::Error> {
         let analysis_config = self
             .config
             .analysis
@@ -281,12 +307,18 @@ impl VerityClient {
                 Part::bytes(notary_pub_key.as_bytes().to_vec()),
             );
 
-        let response = client
+        let resp = client
             .post(url)
             .bearer_auth(self.token.as_ref().unwrap())
             .multipart(form)
             .send()
             .await;
-        println!("{:?}", response);
+
+        let response = resp.unwrap();
+        if response.status().is_server_error() {
+            println!("{:?}", response);
+        }
+
+        Ok(response)
     }
 }

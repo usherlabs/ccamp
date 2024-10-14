@@ -10,23 +10,21 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let config = VerityClientConfig {
         prover_url: String::from("http://127.0.0.1:8080"),
-        prover_zmq: String::from("tcp://127.0.0.1:8000"),
+        prover_zmq: String::from("tcp://127.0.0.1:5556"),
         analysis: Some(AnalysisConfig {
-            analysis_url: String::from("http://127.0.0.1:8888"),
+            analysis_url: String::from("http://127.0.0.1:4000"),
             secret_key,
         }),
     };
 
-    let json: serde_json::Value = VerityClient::new(config)
+    let response = VerityClient::new(config)
         .get("https://jsonplaceholder.typicode.com/posts/98")
         .redact(String::from("res:body:dolor"))
         .send()
         .await
-        .unwrap()
-        .json()
-        .await
         .unwrap();
 
+    let json: serde_json::Value = response.subject.json().await.unwrap();
     println!("{:#?}", json);
 
     Ok(())

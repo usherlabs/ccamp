@@ -17,7 +17,27 @@ async fn main() -> Result<(), reqwest::Error> {
         }),
     };
 
-    let response = VerityClient::new(config)
+    let mut verity_client = VerityClient::new(config);
+    verity_client.auth().await;
+
+    let response = verity_client
+        .post(String::from("https://jsonplaceholder.typicode.com/posts"))
+        .json(&serde_json::json!({
+            "userId": 1000,
+            "firstName": "John",
+            "lastName": "Smith",
+            "fullName": "John Smith",
+            "favoriteActor": "Johnny Depp"
+        }))
+        .redact(String::from("req:body:firstName, res:body:firstName"))
+        .send()
+        .await
+        .unwrap();
+
+    let json: serde_json::Value = response.subject.json().await.unwrap();
+    println!("{:#?}", json);
+
+    let response = verity_client
         .post(String::from("https://jsonplaceholder.typicode.com/posts"))
         .json(&serde_json::json!({
             "userId": 1000,
